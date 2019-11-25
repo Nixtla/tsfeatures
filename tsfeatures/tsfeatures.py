@@ -2,24 +2,27 @@
 from sklearn.preprocessing import scale
 import pandas as pd
 from collections import ChainMap
-from stldecompose import decompose, forecast
+from statsmodels.tsa.seasonal import STL
 import numpy as np
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import acf
+from statsmodels.tsa.stattools import pacf
+from entropy import spectral_entropy
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 def poly(x, p):
     x = np.array(x)
-    X = np.transpose(np.vstack((x**k for k in range(p+1))))
+    X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
     return np.linalg.qr(X)[0][:,1:]
 
 def acf_features(x):
-    m = x.index.freq
+    m = 7#x.index.freq
     if m is None:
         m = 1
     nlags_ = max(m, 10)
-    acfx = acf(x, nlags = nlags_)
-    acfdiff1x = acf(np.diff(x, n = 1), nlags =  nlags_)
-    acfdiff2x = acf(np.diff(x, n = 2), nlags =  nlags_)
+    acfx = acf(x, nlags = nlags_, fft=False)
+    acfdiff1x = acf(np.diff(x, n = 1), nlags =  nlags_, fft=False)
+    acfdiff2x = acf(np.diff(x, n = 2), nlags =  nlags_, fft=False)
     # first autocorrelation coefficient
     acf_1 = acfx[1]
     
@@ -52,6 +55,71 @@ def acf_features(x):
     
     return output
 
+def pacf_features(x):
+    """
+    Partial autocorrelation function features.
+    """
+    m = 7#x.index.freq
+    if m is None:
+        m = 1
+    nlags_ = max(m, 5)
+    
+    pacfx = acf(x, nlags = nlags_, fft=False)
+    
+    # Sum of first 6 PACs squared
+    if len(x) > 5:
+        pacf_5 = np.sum(pacfx[:4]**2)
+    else:
+        pacf_5 = None
+    
+    # Sum of first 5 PACs of difference series squared
+    if len(x) > 6:
+        diff1_pacf_5 = np.sum(pacf(np.diff(x, n = 1), nlags = 5)**2)
+    else:
+        diff1_pacf_5 = None
+        
+        
+    # Sum of first 5 PACs of twice differenced series squared
+    if len(x) > 7:
+        diff2_pacf_5 = np.sum(pacf(np.diff(x, n = 1), nlags = 5)**2)
+    else:
+        diff2_pacf_5 = None
+    
+    output = {
+        'x_pacf5': pacf_5,
+        'diff1x_pacf5': diff1_pacf_5,
+        'diff2x_pacf5': diff1_pacf_5
+    }
+    
+    if m > 1:
+        output['seas_pacf'] = pacfx[m]
+    
+    return output
+
+def holt_parameters(x):
+    fit = ExponentialSmoothing(x, trend = 'add').fit()
+    params = {
+        'alpha': fit.params['smoothing_level'],
+        'beta': fit.params['smoothing_slope']
+    }
+    
+    return params
+
+
+def hw_parameters(x):
+    # Hack: ExponentialSmothing needs a date index
+    # this must be fixed
+    dates_hack = pd.date_range(end = '2019-01-01', periods = len(x))
+    fit = ExponentialSmoothing(x, trend = 'add', seasonal = 'add', dates = dates_hack).fit()
+    params = {
+        'hwalpha': fit.params['smoothing_level'],
+        'hwbeta': fit.params['smoothing_slope'],
+        'hwgamma': fit.params['smoothing_seasonal']
+    }
+    
+    return params
+
+# features
 
 def entropy(x):
     try:
@@ -62,13 +130,51 @@ def entropy(x):
         
     return {'entropy': entropy}
 
+def lumpiness(x):
+    width = 7 # This must be changed
+    nr = len(x)
+    lo = np.arange(1, nr, width)
+    up = np.arange(width, nr + width, width)
+    nsegs = nr / width
+    #print(np.arange(nsegs))
+    varx = [np.var(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
+    
+    if len(x) < 2*width:
+        lumpiness = 0
+    else:
+        lumpiness = np.var(varx)
+        
+    return {'lumpiness': lumpiness}
+
+def stability(x):
+    width = 7 # This must be changed
+    nr = len(x)
+    lo = np.arange(1, nr, width)
+    up = np.arange(width, nr + width, width)
+    nsegs = nr / width
+    #print(np.arange(nsegs))
+    meanx = [np.mean(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
+    
+    if len(x) < 2*width:
+        stability = 0
+    else:
+        stability = np.var(meanx)
+        
+    return {'stability': stability}
+
+# Time series features based of sliding windows
+#def max_level_shift(x):
+#    width = 7 # This must be changed
+    
+    
+    
 def frequency(x):
-    return {'frequency': x.index.freq}
+    return {'frequency': 7}#x.index.freq}
 
 def scalets(x):
     scaledx = scale(x, axis=0, with_mean=True, with_std=True, copy=True)
-    ts = pd.Series(scaledx, index=x.index)
-    return ts
+    #ts = pd.Series(scaledx, index=x.index)
+    return scaledx
 
 def stl_features(x):
     """
@@ -78,7 +184,7 @@ def stl_features(x):
     # Size of ts
     nperiods = len(x)
     # STL fits
-    stlfit = decompose(x, period=13)
+    stlfit = STL(x, period=13).fit()
     trend0 = stlfit.trend
     remainder = stlfit.resid
     seasonal = stlfit.seasonal
@@ -144,8 +250,25 @@ def stl_features(x):
     return output
 
 def tsfeatures(tslist,
-              features = [stl_features, frequency, entropy, acf_features],
+              features = [
+                  stl_features, 
+                  frequency, 
+                  entropy, 
+                  acf_features,
+                  pacf_features,
+                  holt_parameters,
+                  hw_parameters,
+                  entropy, 
+                  lumpiness,
+                  stability
+              ],
               scale = True):
+    """
+    tslist: list of numpy arrays or pandas Series class 
+    """
+    if ~isinstance(tslist, list):
+        tslist = [tslist]
+        
     if scale:
         tslist = [scalets(ts) for ts in tslist]
     

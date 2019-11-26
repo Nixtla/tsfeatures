@@ -1,2 +1,4 @@
 tsfeatures/__pychache__/
 tsfeatures/.ipynb_checkpoints/
+.ipynb_checkpoints/
+*.ipynb

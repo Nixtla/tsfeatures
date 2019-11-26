@@ -250,6 +250,8 @@ def stl_features(x):
     
     return output
 
+
+# Main functions
 def _get_feats(ts_, features):
     c_map = ChainMap(*[dict_feat for dict_feat in [func(ts_) for func in features]])
 
@@ -270,14 +272,24 @@ def tsfeatures(
                   stability
             ],
             scale = True,
-            parallel = False
+            parallel = False,
+            threads = None
     ):
     """
     tslist: list of numpy arrays or pandas Series class 
     """
-    # This could be parallelized
+    # Setting initial var for parallel tasks
+    if parallel and threads is None:
+        threads = mp.cpu_count()
+            
+    # Scaling
     if scale:
-        tslist = [scalets(ts) for ts in tslist]
+        # Parallel 
+        if parallel:
+            with mp.Pool(threads) as pool:
+                tslist = pool.map(scalets, tslist)
+        else:
+            tslist = [scalets(ts) for ts in tslist]
         
     
     # Init parallel

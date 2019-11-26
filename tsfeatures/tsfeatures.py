@@ -16,8 +16,10 @@ def poly(x, p):
     X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
     return np.linalg.qr(X)[0][:,1:]
 
+
 def acf_features(x):
-    m = 7#x.index.freq
+    ### Unpacking series
+    (x, m) = x
     if m is None:
         m = 1
     nlags_ = max(m, 10)
@@ -60,7 +62,8 @@ def pacf_features(x):
     """
     Partial autocorrelation function features.
     """
-    m = 7#x.index.freq
+    ### Unpacking series
+    (x, m) = x
     if m is None:
         m = 1
     nlags_ = max(m, 5)
@@ -98,6 +101,8 @@ def pacf_features(x):
     return output
 
 def holt_parameters(x):
+    ### Unpacking series
+    (x, m) = x
     fit = ExponentialSmoothing(x, trend = 'add').fit()
     params = {
         'alpha': fit.params['smoothing_level'],
@@ -108,6 +113,8 @@ def holt_parameters(x):
 
 
 def hw_parameters(x):
+    ### Unpacking series
+    (x, m) = x
     # Hack: ExponentialSmothing needs a date index
     # this must be fixed
     dates_hack = pd.date_range(end = '2019-01-01', periods = len(x))
@@ -123,6 +130,8 @@ def hw_parameters(x):
 # features
 
 def entropy(x):
+    ### Unpacking series
+    (x, m) = x
     try:
         # Maybe 100 can change
         entropy = spectral_entropy(x, 1)
@@ -132,7 +141,8 @@ def entropy(x):
     return {'entropy': entropy}
 
 def lumpiness(x):
-    width = 7 # This must be changed
+    ### Unpacking series
+    (x, width) = x
     nr = len(x)
     lo = np.arange(1, nr, width)
     up = np.arange(width, nr + width, width)
@@ -148,7 +158,8 @@ def lumpiness(x):
     return {'lumpiness': lumpiness}
 
 def stability(x):
-    width = 7 # This must be changed
+    ### Unpacking series
+    (x, width) = x
     nr = len(x)
     lo = np.arange(1, nr, width)
     up = np.arange(width, nr + width, width)
@@ -170,9 +181,13 @@ def stability(x):
     
     
 def frequency(x):
-    return {'frequency': 7}#x.index.freq}
+    ### Unpacking series
+    (x, m) = x
+    # Needs frequency of series
+    return {'frequency': m}#x.index.freq}
 
 def scalets(x):
+    # Scaling time series
     scaledx = scale(x, axis=0, with_mean=True, with_std=True, copy=True)
     #ts = pd.Series(scaledx, index=x.index)
     return scaledx
@@ -181,7 +196,8 @@ def stl_features(x):
     """
     Returns a DF where each column is an statistic.
     """
-    ### 1
+    ### Unpacking series
+    (x, m) = x
     # Size of ts
     nperiods = len(x)
     # STL fits
@@ -234,7 +250,7 @@ def stl_features(x):
     curvature = coefs[2]
     
     # ACF features
-    acfremainder = acf_features(remainder)
+    acfremainder = acf_features((remainder, m))
     
     # Assemble features
     output = {
@@ -259,6 +275,7 @@ def _get_feats(ts_, features):
 
 def tsfeatures(
             tslist,
+            frcy,
             features = [
                   stl_features, 
                   frequency, 
@@ -291,6 +308,11 @@ def tsfeatures(
         else:
             tslist = [scalets(ts) for ts in tslist]
         
+    
+    # There's methods which needs frequency
+    # This is a hack for this
+    # each feature function receives a tuple (ts, frcy)
+    tslist = [(ts, frcy) for ts in tslist]
     
     # Init parallel
     if parallel:

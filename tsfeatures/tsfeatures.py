@@ -9,6 +9,7 @@ from statsmodels.tsa.stattools import acf
 from statsmodels.tsa.stattools import pacf
 from entropy import spectral_entropy
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+import multiprocessing as mp
 
 def poly(x, p):
     x = np.array(x)
@@ -249,38 +250,45 @@ def stl_features(x):
     
     return output
 
-def tsfeatures(tslist,
-              features = [
+def _get_feats(ts_, features):
+    c_map = ChainMap(*[dict_feat for dict_feat in [func(ts_) for func in features]])
+
+    return pd.DataFrame(dict(c_map), index = [0])
+
+def tsfeatures(
+            tslist,
+            features = [
                   stl_features, 
                   frequency, 
                   entropy, 
                   acf_features,
                   pacf_features,
-                  holt_parameters,
-                  hw_parameters,
+                  #holt_parameters,
+                  #hw_parameters,
                   entropy, 
                   lumpiness,
                   stability
-              ],
-              scale = True):
+            ],
+            scale = True,
+            parallel = False
+    ):
     """
     tslist: list of numpy arrays or pandas Series class 
     """
-    if ~isinstance(tslist, list):
-        tslist = [tslist]
-        
+    # This could be parallelized
     if scale:
         tslist = [scalets(ts) for ts in tslist]
+        
     
-    feat_df = pd.concat(
-        [
-            pd.DataFrame(
-                dict(
-                    ChainMap(*[dict_feat for dict_feat in [func(ts) for func in features]])
-                ),
-                index = [0]
-            ) for ts in tslist
-        ]
-    ).reset_index(drop=True)
+    # Init parallel
+    if parallel:
+        n_series = len(tslist)
+        with mp.Pool(mp.cpu_count()) as pool: 
+            ts_features = pool.starmap(_get_feats, zip(tslist, [features for i in range(n_series)]))
+    else:
+        ts_features = [_get_feats(ts, features) for ts in tslist]
+    
+    
+    feat_df = pd.concat(ts_features).reset_index(drop=True)
     
     return feat_df

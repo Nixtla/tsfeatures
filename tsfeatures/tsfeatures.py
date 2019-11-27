@@ -184,6 +184,17 @@ def stability(x):
         
     return {'stability': stability}
 
+def crossing_points(x):
+    (x, m) = x
+    midline = np.median(x)
+    ab = x <= midline
+    lenx = len(x)
+    p1 = ab[:(lenx-1)]
+    p2 = ab[1:]
+    cross = (p1 & (~p2)) | (p2 & (~p1))
+    return {'crossing_points': cross.sum()}
+
+
 # Time series features based of sliding windows
 #def max_level_shift(x):
 #    width = 7 # This must be changed

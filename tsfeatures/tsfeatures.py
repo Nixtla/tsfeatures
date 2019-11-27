@@ -22,27 +22,36 @@ def acf_features(x):
     (x, m) = x
     if m is None:
         m = 1
-    nlags_ = max(m, 10)
-    acfx = acf(x, nlags = nlags_, fft=False)
-    acfdiff1x = acf(np.diff(x, n = 1), nlags =  nlags_, fft=False)
-    acfdiff2x = acf(np.diff(x, n = 2), nlags =  nlags_, fft=False)
+    size_x = len(x)
+    
+    acfx = acf(x, nlags = max(size_x, 10), fft=False)
+    if size_x > 10:
+        acfdiff1x = acf(np.diff(x, n = 1), nlags =  10, fft=False)
+    else:
+        acfdiff1x = np.nan
+        
+    if size_x > 11:
+        acfdiff2x = acf(np.diff(x, n = 2), nlags =  10, fft=False)
+    else:
+        acfdiff2x = np.nan    
+    
     # first autocorrelation coefficient
     acf_1 = acfx[1]
     
     # sum of squares of first 10 autocorrelation coefficients
-    sum_of_sq_acf10 = np.sum((acfx[1:11])**2)
+    sum_of_sq_acf10 = np.sum((acfx[:11])**2)
     
     # first autocorrelation ciefficient of differenced series
     diff1_acf1 = acfdiff1x[1]
     
     # sum of squared of first 10 autocorrelation coefficients of differenced series
-    diff1_acf10 = np.sum((acfdiff1x[1:11])**2)
+    diff1_acf10 = np.sum((acfdiff1x[:11])**2)
     
     # first autocorrelation coefficient of twice-differenced series
     diff2_acf1 = acfdiff2x[1]
     
     # Sum of squared of first 10 autocorrelation coefficients of twice-differenced series
-    diff2_acf10 = np.sum((acfdiff2x[1:11])**2)
+    diff2_acf10 = np.sum((acfdiff2x[:11])**2)
     
     output = {
         'x_acf1': acf_1,
@@ -136,7 +145,7 @@ def entropy(x):
         # Maybe 100 can change
         entropy = spectral_entropy(x, 1)
     except:
-        entropy = None
+        entropy = np.nan
         
     return {'entropy': entropy}
 
@@ -199,11 +208,12 @@ def stl_features(x):
     ### Unpacking series
     (x, m) = x
     # Size of ts
-    nperiods = len(x)
+    nperiods = m > 1
     # STL fits
-    stlfit = STL(x, period=13).fit()
+    stlfit = STL(x, period=m).fit()
     trend0 = stlfit.trend
     remainder = stlfit.resid
+    #print(len(remainder))
     seasonal = stlfit.seasonal
     
     # De-trended and de-seasonalized data

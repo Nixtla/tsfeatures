@@ -10,6 +10,7 @@ from statsmodels.tsa.stattools import pacf
 from entropy import spectral_entropy
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import multiprocessing as mp
+from sklearn.linear_model import LinearRegression
 
 def poly(x, p):
     x = np.array(x)
@@ -277,6 +278,28 @@ def stl_features(x):
     
     return output
 
+#### Heterogeneity coefficients
+
+#ARCH LM statistic
+def arch_stat(x, lags=12, demean=True):
+    (x, m) = x
+    if len(x) <= 13:
+        return {'arch_lm': np.nan}
+    if demean:
+        x = x - np.mean(x)
+    
+    size_x = len(x)
+    slice_ = size_x - lags
+    xx = x**2
+    y = xx[:slice_]
+    X = np.roll(xx, -lags)[:slice_].reshape(-1, 1)
+    
+    try:
+        r_squared = LinearRegression().fit(X, y).score(X.reshape(-1, 1), y)
+    except:
+        r_squared = np.nan
+    
+    return {'arch_lm': r_squared}
 
 # Main functions
 def _get_feats(ts_, features):

@@ -194,6 +194,17 @@ def crossing_points(x):
     cross = (p1 & (~p2)) | (p2 & (~p1))
     return {'crossing_points': cross.sum()}
 
+def flat_spots(x):
+    (x, m) = x
+    try:
+        cutx = pd.cut(x, bins=10, include_lowest=True, labels=False) + 1
+    except:
+        return {'flat_spots': np.nan}
+
+    rlex = np.array([sum(1 for i in g) for k,g in groupby(cutx)]).max()
+    
+    return {'flat_spots': rlex}
+
 
 # Time series features based of sliding windows
 #def max_level_shift(x):

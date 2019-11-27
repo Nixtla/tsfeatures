@@ -210,6 +210,7 @@ def stl_features(x):
     # Size of ts
     nperiods = m > 1
     # STL fits
+    #print(x)
     stlfit = STL(x, period=m).fit()
     trend0 = stlfit.trend
     remainder = stlfit.resid
@@ -305,6 +306,9 @@ def tsfeatures(
     """
     tslist: list of numpy arrays or pandas Series class 
     """
+    if not isinstance(tslist, list):
+        tslist = [tslist]
+
     # Setting initial var for parallel tasks
     if parallel and threads is None:
         threads = mp.cpu_count()

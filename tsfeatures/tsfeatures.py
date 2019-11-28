@@ -11,6 +11,11 @@ from entropy import spectral_entropy
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import multiprocessing as mp
 from sklearn.linear_model import LinearRegression
+from itertools import groupby
+from statsmodels.tsa.ar_model import AR
+from statsmodels.tsa.stattools import acf
+from arch import arch_model
+import logging
 
 def poly(x, p):
     x = np.array(x)

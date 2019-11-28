@@ -239,13 +239,15 @@ def heterogeneity(x):
      
     return output
 
-
+def series_length(x):
+    (x, m) = x
+    
+    return {'series_length': len(x)}
 # Time series features based of sliding windows
 #def max_level_shift(x):
 #    width = 7 # This must be changed
     
-    
-    
+
 def frequency(x):
     ### Unpacking series
     (x, m) = x

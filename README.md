@@ -2,15 +2,31 @@
 
 This library replicates _[tsfeatures](https://github.com/robjhyndman/tsfeatures)_, R package.
 
+# Install
+
+``` python
+pip install git+https://github.com/FedericoGarza/tsfeatures
+```
+
+
 # Use
 
 ``` python
-import tsfeatures as tsf
+from tsfeatures import tsfeatures
 ```
 
-This package receives a list of time series.
+This package receives a list of time series and a frecuency.
 
-``` r
+``` python
 series = []
-tsf.tsfeatures(series)
+frcy = 7
+tsfeatures(series, frcy=7)
 ```
+
+## Parallel!
+
+
+``` python
+tsfeatures(series, frcy=7, parallel=True)
+```
+

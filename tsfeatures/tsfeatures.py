@@ -205,6 +205,35 @@ def flat_spots(x):
     
     return {'flat_spots': rlex}
 
+def heterogeneity(x):
+    (x, m) = x
+    size_x = len(x)
+    order_ar = min(size_x-1, 10*np.log10(size_x)).astype(int) # Defaults for
+    x_whitened = AR(x).fit(maxlag = order_ar).resid
+
+    # arch and box test
+    x_archtest = arch_stat((x_whitened, m))['arch_lm']
+    LBstat = (acf(x_whitened**2, nlags=12, fft=False)[1:]**2).sum()
+
+    #Fit garch model
+    garch_fit = arch_model(x_whitened, vol='GARCH', rescale=False).fit(disp='off')
+
+    # compare arch test before and after fitting garch
+    garch_fit_std = garch_fit.resid
+    x_garch_archtest = arch_stat((garch_fit_std, m))['arch_lm']
+
+    # compare Box test of squared residuals before and after fittig.garch
+    LBstat2 = (acf(garch_fit_std**2, nlags=12, fft=False)[1:]**2).sum()
+    
+    output = {
+        'arch_acf': LBstat,
+        'garch_acf': LBstat2,
+        'arch_2': x_archtest,
+        'garch_r2': x_garch_archtest
+    }
+     
+    return output
+
 
 # Time series features based of sliding windows
 #def max_level_shift(x):

@@ -22,7 +22,6 @@ def poly(x, p):
     X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
     return np.linalg.qr(X)[0][:,1:]
 
-
 def acf_features(x):
     ### Unpacking series
     (x, m) = x

@@ -2,6 +2,14 @@
 
 This library replicates _[tsfeatures](https://github.com/robjhyndman/tsfeatures)_, R package.
 
+# Needed libraries
+
+
+``` python
+pip install arch
+pip install git+https://github.com/statsmodels/statsmodels
+```
+
 # Install
 
 ``` python

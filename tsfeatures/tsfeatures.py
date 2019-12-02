@@ -359,7 +359,8 @@ def arch_stat(x, lags=12, demean=True):
     return {'arch_lm': r_squared}
 
 # Main functions
-def _get_feats(ts_, features):
+def _get_feats(tuple_ts_features):
+    (ts_, features) = tuple_ts_features
     c_map = ChainMap(*[dict_feat for dict_feat in [func(ts_) for func in features]])
 
     return pd.DataFrame(dict(c_map), index = [0])
@@ -414,9 +415,9 @@ def tsfeatures(
     if parallel:
         n_series = len(tslist)
         with mp.Pool(threads) as pool: 
-            ts_features = pool.starmap(_get_feats, zip(tslist, [features for i in range(n_series)]))
+            ts_features = pool.map(_get_feats, zip(tslist, [features for i in range(n_series)]))
     else:
-        ts_features = [_get_feats(ts, features) for ts in tslist]
+        ts_features = [_get_feats((ts, features)) for ts in tslist]
     
     
     feat_df = pd.concat(ts_features).reset_index(drop=True)

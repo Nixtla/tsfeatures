@@ -394,9 +394,6 @@ def tsfeatures(
     if not isinstance(tslist, list):
         tslist = [tslist]
 
-    # Setting initial var for parallel tasks
-    if parallel and threads is None:
-        threads = mp.cpu_count()
             
     # Scaling
     if scale:
@@ -416,7 +413,7 @@ def tsfeatures(
     # Init parallel
     if parallel:
         n_series = len(tslist)
-        with mp.Pool(mp.cpu_count()) as pool: 
+        with mp.Pool(threads) as pool: 
             ts_features = pool.starmap(_get_feats, zip(tslist, [features for i in range(n_series)]))
     else:
         ts_features = [_get_feats(ts, features) for ts in tslist]

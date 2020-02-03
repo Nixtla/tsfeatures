@@ -376,7 +376,7 @@ def tsfeatures(
                 pacf_features,
                 #holt_parameters,
                 #hw_parameters,
-                entropy, 
+                #entropy, 
                 lumpiness,
                 stability,
                 arch_stat,

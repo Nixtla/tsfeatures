@@ -371,7 +371,7 @@ def tsfeatures(
             features = [
                 stl_features, 
                 frequency, 
-                entropy, 
+                #entropy, 
                 acf_features,
                 pacf_features,
                 #holt_parameters,

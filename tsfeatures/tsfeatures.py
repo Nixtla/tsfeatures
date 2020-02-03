@@ -381,7 +381,7 @@ def tsfeatures(
                 stability,
                 arch_stat,
                 series_length,
-                heterogeneity,
+                #heterogeneity,
                 flat_spots,
                 crossing_points
             ],

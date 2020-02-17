@@ -33,12 +33,12 @@ def acf_features(x):
     if size_x > 10:
         acfdiff1x = acf(np.diff(x, n = 1), nlags =  10, fft=False)
     else:
-        acfdiff1x = [np.nan]
+        acfdiff1x = [np.nan]*2
 
     if size_x > 11:
         acfdiff2x = acf(np.diff(x, n = 2), nlags =  10, fft=False)
     else:
-        acfdiff2x = [np.nan]
+        acfdiff2x = [np.nan]*2
 
     # first autocorrelation coefficient
     acf_1 = acfx[1]

@@ -68,7 +68,7 @@ def acf_features(x):
     }
 
     if m > 1:
-        output['seas_acf1'] = acfx[m + 2] if len(acfx) > m + 1 else np.nan
+        output['seas_acf1'] = acfx[m + 2] if len(acfx) > m + 2 else np.nan
 
     return output
 

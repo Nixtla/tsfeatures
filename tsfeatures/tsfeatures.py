@@ -123,7 +123,7 @@ def holt_parameters(x):
             'alpha': fit.params['smoothing_level'],
             'beta': fit.params['smoothing_slope']
         }
-    else:
+    except:
         params = {
             'alpha': np.nan,
             'beta': np.nan

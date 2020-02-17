@@ -28,36 +28,36 @@ def acf_features(x):
     if m is None:
         m = 1
     size_x = len(x)
-    
+
     acfx = acf(x, nlags = max(size_x, 10), fft=False)
     if size_x > 10:
         acfdiff1x = acf(np.diff(x, n = 1), nlags =  10, fft=False)
     else:
-        acfdiff1x = np.nan
-        
+        acfdiff1x = [np.nan]
+
     if size_x > 11:
         acfdiff2x = acf(np.diff(x, n = 2), nlags =  10, fft=False)
     else:
-        acfdiff2x = np.nan    
-    
+        acfdiff2x = [np.nan]
+
     # first autocorrelation coefficient
     acf_1 = acfx[1]
-    
+
     # sum of squares of first 10 autocorrelation coefficients
-    sum_of_sq_acf10 = np.sum((acfx[:11])**2)
-    
+    sum_of_sq_acf10 = np.sum((acfx[:11])**2) if size_x > 10 else np.nan
+
     # first autocorrelation ciefficient of differenced series
     diff1_acf1 = acfdiff1x[1]
-    
+
     # sum of squared of first 10 autocorrelation coefficients of differenced series
-    diff1_acf10 = np.sum((acfdiff1x[:11])**2)
-    
+    diff1_acf10 = np.sum((acfdiff1x[:11])**2) if size_x > 10 else np.nan
+
     # first autocorrelation coefficient of twice-differenced series
     diff2_acf1 = acfdiff2x[1]
-    
+
     # Sum of squared of first 10 autocorrelation coefficients of twice-differenced series
-    diff2_acf10 = np.sum((acfdiff2x[:11])**2)
-    
+    diff2_acf10 = np.sum((acfdiff2x[:11])**2) if size_x > 11 else np.nan
+
     output = {
         'x_acf1': acf_1,
         'x_acf10': sum_of_sq_acf10,
@@ -66,10 +66,10 @@ def acf_features(x):
         'diff2_acf1': diff2_acf1,
         'diff2_acf10': diff2_acf10
     }
-    
+
     if m > 1:
-        output['seas_acf1'] = acfx[m + 2]
-    
+        output['seas_acf1'] = acfx[m + 2] if len(acfx) > m + 1 else np.nan
+
     return output
 
 def pacf_features(x):
@@ -81,48 +81,54 @@ def pacf_features(x):
     if m is None:
         m = 1
     nlags_ = max(m, 5)
-    
+
     pacfx = acf(x, nlags = nlags_, fft=False)
-    
+
     # Sum of first 6 PACs squared
     if len(x) > 5:
         pacf_5 = np.sum(pacfx[:4]**2)
     else:
-        pacf_5 = None
-    
+        pacf_5 = np.nan
+
     # Sum of first 5 PACs of difference series squared
     if len(x) > 6:
         diff1_pacf_5 = np.sum(pacf(np.diff(x, n = 1), nlags = 5)**2)
     else:
-        diff1_pacf_5 = None
-        
-        
+        diff1_pacf_5 = np.nan
+
+
     # Sum of first 5 PACs of twice differenced series squared
     if len(x) > 7:
         diff2_pacf_5 = np.sum(pacf(np.diff(x, n = 1), nlags = 5)**2)
     else:
-        diff2_pacf_5 = None
-    
+        diff2_pacf_5 = np.nan
+
     output = {
         'x_pacf5': pacf_5,
         'diff1x_pacf5': diff1_pacf_5,
         'diff2x_pacf5': diff1_pacf_5
     }
-    
+
     if m > 1:
-        output['seas_pacf'] = pacfx[m]
-    
+        output['seas_pacf'] = pacfx[m] if len(pacfx) > m else np.nan
+
     return output
 
 def holt_parameters(x):
     ### Unpacking series
     (x, m) = x
-    fit = ExponentialSmoothing(x, trend = 'add').fit()
-    params = {
-        'alpha': fit.params['smoothing_level'],
-        'beta': fit.params['smoothing_slope']
-    }
-    
+    try :
+        fit = ExponentialSmoothing(x, trend = 'add').fit()
+        params = {
+            'alpha': fit.params['smoothing_level'],
+            'beta': fit.params['smoothing_slope']
+        }
+    else:
+        params = {
+            'alpha': np.nan,
+            'beta': np.nan
+        }
+
     return params
 
 
@@ -132,13 +138,19 @@ def hw_parameters(x):
     # Hack: ExponentialSmothing needs a date index
     # this must be fixed
     dates_hack = pd.date_range(end = '2019-01-01', periods = len(x))
-    fit = ExponentialSmoothing(x, trend = 'add', seasonal = 'add', dates = dates_hack).fit()
-    params = {
-        'hwalpha': fit.params['smoothing_level'],
-        'hwbeta': fit.params['smoothing_slope'],
-        'hwgamma': fit.params['smoothing_seasonal']
-    }
-    
+    try:
+        fit = ExponentialSmoothing(x, trend = 'add', seasonal = 'add', dates = dates_hack).fit()
+        params = {
+            'hwalpha': fit.params['smoothing_level'],
+            'hwbeta': fit.params['smoothing_slope'],
+            'hwgamma': fit.params['smoothing_seasonal']
+        }
+    except:
+        params = {
+            'hwalpha': np.nan,
+            'hwbeta': np.nan,
+            'hwgamma': np.nan
+        }
     return params
 
 # features
@@ -151,7 +163,7 @@ def entropy(x):
         entropy = spectral_entropy(x, 1)
     except:
         entropy = np.nan
-        
+
     return {'entropy': entropy}
 
 def lumpiness(x):
@@ -163,12 +175,12 @@ def lumpiness(x):
     nsegs = nr / width
     #print(np.arange(nsegs))
     varx = [np.var(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
-    
+
     if len(x) < 2*width:
         lumpiness = 0
     else:
         lumpiness = np.var(varx)
-        
+
     return {'lumpiness': lumpiness}
 
 def stability(x):
@@ -180,12 +192,12 @@ def stability(x):
     nsegs = nr / width
     #print(np.arange(nsegs))
     meanx = [np.mean(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
-    
+
     if len(x) < 2*width:
         stability = 0
     else:
         stability = np.var(meanx)
-        
+
     return {'stability': stability}
 
 def crossing_points(x):
@@ -206,7 +218,7 @@ def flat_spots(x):
         return {'flat_spots': np.nan}
 
     rlex = np.array([sum(1 for i in g) for k,g in groupby(cutx)]).max()
-    
+
     return {'flat_spots': rlex}
 
 def heterogeneity(x):
@@ -228,24 +240,24 @@ def heterogeneity(x):
 
     # compare Box test of squared residuals before and after fittig.garch
     LBstat2 = (acf(garch_fit_std**2, nlags=12, fft=False)[1:]**2).sum()
-    
+
     output = {
         'arch_acf': LBstat,
         'garch_acf': LBstat2,
         'arch_2': x_archtest,
         'garch_r2': x_garch_archtest
     }
-     
+
     return output
 
 def series_length(x):
     (x, m) = x
-    
+
     return {'series_length': len(x)}
 # Time series features based of sliding windows
 #def max_level_shift(x):
 #    width = 7 # This must be changed
-    
+
 
 def frequency(x):
     ### Unpacking series
@@ -274,19 +286,19 @@ def stl_features(x):
     remainder = stlfit.resid
     #print(len(remainder))
     seasonal = stlfit.seasonal
-    
+
     # De-trended and de-seasonalized data
     detrend = x - trend0
     deseason = x - seasonal
     fits = x - remainder
-    
+
     # Summay stats
     n = len(x)
     varx = np.nanvar(x)
     vare = np.nanvar(remainder)
     vardetrend = np.nanvar(detrend)
     vardeseason = np.nanvar(deseason)
-    
+
     #Measure of trend strength
     if varx < np.finfo(float).eps:
         trend = 0
@@ -302,25 +314,25 @@ def stl_features(x):
         seasonality = 0
     else:
         seasonality = max(0, min(1, 1 - vare/np.nanvar(remainder + seasonal)))
-  
+
 
     # Compute measure of spikiness
     d = (remainder - np.nanmean(remainder))**2
     varloo = (vare*(n-1)-d)/(n-2)
     spike = np.nanvar(varloo)
-    
-    # Compute measures of linearity and curvature 
+
+    # Compute measures of linearity and curvature
     time = np.arange(n) + 1
     poly_m = poly(time, 2)
     time_x = sm.add_constant(poly_m)
     coefs = sm.OLS(trend0, time_x).fit().params
-    
+
     linearity = coefs[1]
     curvature = coefs[2]
-    
+
     # ACF features
     acfremainder = acf_features((remainder, m))
-    
+
     # Assemble features
     output = {
         'nperiods': nperiods,
@@ -330,9 +342,9 @@ def stl_features(x):
         'linearity': linearity,
         'curvature': curvature,
         'e_acf1': acfremainder['x_acf1'],
-        'e_acf10': acfremainder['x_acf10']   
+        'e_acf10': acfremainder['x_acf10']
     }
-    
+
     return output
 
 #### Heterogeneity coefficients
@@ -344,18 +356,18 @@ def arch_stat(x, lags=12, demean=True):
         return {'arch_lm': np.nan}
     if demean:
         x = x - np.mean(x)
-    
+
     size_x = len(x)
     slice_ = size_x - lags
     xx = x**2
     y = xx[:slice_]
     X = np.roll(xx, -lags)[:slice_].reshape(-1, 1)
-    
+
     try:
         r_squared = LinearRegression().fit(X, y).score(X.reshape(-1, 1), y)
     except:
         r_squared = np.nan
-    
+
     return {'arch_lm': r_squared}
 
 # Main functions
@@ -369,14 +381,14 @@ def tsfeatures(
             tslist,
             frcy,
             features = [
-                stl_features, 
-                frequency, 
-                #entropy, 
+                stl_features,
+                frequency,
+                #entropy,
                 acf_features,
                 pacf_features,
                 #holt_parameters,
                 #hw_parameters,
-                #entropy, 
+                #entropy,
                 lumpiness,
                 stability,
                 arch_stat,
@@ -390,36 +402,36 @@ def tsfeatures(
             threads = None
     ):
     """
-    tslist: list of numpy arrays or pandas Series class 
+    tslist: list of numpy arrays or pandas Series class
     """
     if not isinstance(tslist, list):
         tslist = [tslist]
 
-            
+
     # Scaling
     if scale:
-        # Parallel 
+        # Parallel
         if parallel:
             with mp.Pool(threads) as pool:
                 tslist = pool.map(scalets, tslist)
         else:
             tslist = [scalets(ts) for ts in tslist]
-        
-    
+
+
     # There's methods which needs frequency
     # This is a hack for this
     # each feature function receives a tuple (ts, frcy)
     tslist = [(ts, frcy) for ts in tslist]
-    
+
     # Init parallel
     if parallel:
         n_series = len(tslist)
-        with mp.Pool(threads) as pool: 
+        with mp.Pool(threads) as pool:
             ts_features = pool.map(_get_feats, zip(tslist, [features for i in range(n_series)]))
     else:
         ts_features = [_get_feats((ts, features)) for ts in tslist]
-    
-    
+
+
     feat_df = pd.concat(ts_features).reset_index(drop=True)
-    
+
     return feat_df

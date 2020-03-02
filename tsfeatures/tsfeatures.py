@@ -204,17 +204,21 @@ def lumpiness(x):
 def stability(x):
     ### Unpacking series
     (x, width) = x
+
+    if width == 1:
+        width = 10
+
     nr = len(x)
-    lo = np.arange(1, nr, width)
-    up = np.arange(width, nr + width, width)
+    lo = np.arange(0, nr, width)
+    up = lo + width
     nsegs = nr / width
     #print(np.arange(nsegs))
-    meanx = [np.mean(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
+    meanx = [np.nanmean(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
 
     if len(x) < 2*width:
         stability = 0
     else:
-        stability = np.var(meanx)
+        stability = np.nanvar(meanx, ddof=1)
 
     return {'stability': stability}
 

@@ -84,7 +84,7 @@ def pacf_features(x):
 
     if len(x) > 1:
         try:
-            pacfx = pacf(x, nlags = nlags_)
+            pacfx = pacf(x, nlags = nlags_, method='ldb')
         except:
             pacfx = np.nan
     else:
@@ -99,7 +99,7 @@ def pacf_features(x):
     # Sum of first 5 PACs of difference series squared
     if len(x) > 6:
         try:
-            diff1_pacf = pacf(np.diff(x, n = 1), nlags = 5)[1:6]
+            diff1_pacf = pacf(np.diff(x, n = 1), nlags = 5, method='ldb')[1:6]
             diff1_pacf_5 = np.sum(diff1_pacf**2)
         except:
             diff1_pacf_5 = np.nan
@@ -110,7 +110,7 @@ def pacf_features(x):
     # Sum of first 5 PACs of twice differenced series squared
     if len(x) > 7:
         try:
-            diff2_pacf = pacf(np.diff(x, n = 2), nlags = 5)[1:6]
+            diff2_pacf = pacf(np.diff(x, n = 2), nlags = 5, method='ldb')[1:6]
             diff2_pacf_5 = np.sum(diff2_pacf**2)
         except:
             diff2_pacf_5 = np.nan

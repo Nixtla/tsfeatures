@@ -120,7 +120,7 @@ def pacf_features(x):
     output = {
         'x_pacf5': pacf_5,
         'diff1x_pacf5': diff1_pacf_5,
-        'diff2x_pacf5': diff1_pacf_5
+        'diff2x_pacf5': diff2_pacf_5
     }
 
     if m > 1:

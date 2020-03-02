@@ -82,11 +82,17 @@ def pacf_features(x):
         m = 1
     nlags_ = max(m, 5)
 
-    pacfx = acf(x, nlags = nlags_, fft=False)
+    if len(x) > 1:
+        try:
+            pacfx = pacf(x, nlags = nlags_)
+        except:
+            pacfx = np.nan
+    else:
+        pacfx = np.nan
 
     # Sum of first 6 PACs squared
     if len(x) > 5:
-        pacf_5 = np.sum(pacfx[:4]**2)
+        pacf_5 = np.sum(pacfx[:5]**2)
     else:
         pacf_5 = np.nan
 

@@ -44,19 +44,19 @@ def acf_features(x):
     acf_1 = acfx[1]
 
     # sum of squares of first 10 autocorrelation coefficients
-    sum_of_sq_acf10 = np.sum((acfx[:11])**2) if size_x > 10 else np.nan
+    sum_of_sq_acf10 = np.sum((acfx[1:11])**2) if size_x > 10 else np.nan
 
     # first autocorrelation ciefficient of differenced series
     diff1_acf1 = acfdiff1x[1]
 
     # sum of squared of first 10 autocorrelation coefficients of differenced series
-    diff1_acf10 = np.sum((acfdiff1x[:11])**2) if size_x > 10 else np.nan
+    diff1_acf10 = np.sum((acfdiff1x[1:11])**2) if size_x > 10 else np.nan
 
     # first autocorrelation coefficient of twice-differenced series
     diff2_acf1 = acfdiff2x[1]
 
     # Sum of squared of first 10 autocorrelation coefficients of twice-differenced series
-    diff2_acf10 = np.sum((acfdiff2x[:11])**2) if size_x > 11 else np.nan
+    diff2_acf10 = np.sum((acfdiff2x[1:11])**2) if size_x > 11 else np.nan
 
     output = {
         'x_acf1': acf_1,

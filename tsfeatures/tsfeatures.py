@@ -183,17 +183,21 @@ def entropy(x):
 def lumpiness(x):
     ### Unpacking series
     (x, width) = x
+
+    if width == 1:
+        width = 10
+
     nr = len(x)
-    lo = np.arange(1, nr, width)
-    up = np.arange(width, nr + width, width)
+    lo = np.arange(0, nr, width)
+    up = lo + width
     nsegs = nr / width
-    #print(np.arange(nsegs))
-    varx = [np.var(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
+    varx = [np.nanvar(x[lo[idx]:up[idx]], ddof=1) for idx in np.arange(int(nsegs))]
+    print(varx)
 
     if len(x) < 2*width:
         lumpiness = 0
     else:
-        lumpiness = np.var(varx)
+        lumpiness = np.nanvar(varx, ddof=1)
 
     return {'lumpiness': lumpiness}
 

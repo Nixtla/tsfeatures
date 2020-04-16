@@ -369,6 +369,10 @@ def stl_features(x):
 
     return output
 
+def sparsity(x):
+    (x, m) = x
+    return {'sparsity': np.mean(x == 0)}
+
 #### Heterogeneity coefficients
 
 #ARCH LM statistic
@@ -417,7 +421,8 @@ def tsfeatures(
                 series_length,
                 #heterogeneity,
                 flat_spots,
-                crossing_points
+                crossing_points,
+                sparsity
             ],
             scale = True,
             parallel = False,
@@ -429,9 +434,17 @@ def tsfeatures(
     if not isinstance(tslist, list):
         tslist = [tslist]
 
-
+    sp = None
     # Scaling
     if scale:
+        if sparsity in features:
+            features = [feat for feat in features if feat is not sparsity]
+            if parallel:
+                with mp.Pool(threads) as pool:
+                    sp = pool.map(sparsity, [(y, frcy) for y in tslist])
+            else:
+                sp = [sparsity((ts, frcy)) for ts in tslist]
+            sp = pd.DataFrame(sp)
         # Parallel
         if parallel:
             with mp.Pool(threads) as pool:
@@ -455,5 +468,7 @@ def tsfeatures(
 
 
     feat_df = pd.concat(ts_features).reset_index(drop=True)
+    if sp is not None:
+        feat_df = pd.concat([feat_df, sp], axis=1)
 
     return feat_df

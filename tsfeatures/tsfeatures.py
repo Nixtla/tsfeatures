@@ -44,19 +44,19 @@ def acf_features(x):
     acf_1 = acfx[1]
 
     # sum of squares of first 10 autocorrelation coefficients
-    sum_of_sq_acf10 = np.sum((acfx[1:11])**2) if size_x > 10 else np.nan
+    sum_of_sq_acf10 = np.sum((acfx[:11])**2) if size_x > 10 else np.nan
 
     # first autocorrelation ciefficient of differenced series
     diff1_acf1 = acfdiff1x[1]
 
     # sum of squared of first 10 autocorrelation coefficients of differenced series
-    diff1_acf10 = np.sum((acfdiff1x[1:11])**2) if size_x > 10 else np.nan
+    diff1_acf10 = np.sum((acfdiff1x[:11])**2) if size_x > 10 else np.nan
 
     # first autocorrelation coefficient of twice-differenced series
     diff2_acf1 = acfdiff2x[1]
 
     # Sum of squared of first 10 autocorrelation coefficients of twice-differenced series
-    diff2_acf10 = np.sum((acfdiff2x[1:11])**2) if size_x > 11 else np.nan
+    diff2_acf10 = np.sum((acfdiff2x[:11])**2) if size_x > 11 else np.nan
 
     output = {
         'x_acf1': acf_1,
@@ -82,25 +82,18 @@ def pacf_features(x):
         m = 1
     nlags_ = max(m, 5)
 
-    if len(x) > 1:
-        try:
-            pacfx = pacf(x, nlags = nlags_, method='ldb')
-        except:
-            pacfx = np.nan
-    else:
-        pacfx = np.nan
+    pacfx = acf(x, nlags = nlags_, fft=False)
 
     # Sum of first 6 PACs squared
     if len(x) > 5:
-        pacf_5 = np.sum(pacfx[1:6]**2)
+        pacf_5 = np.sum(pacfx[:4]**2)
     else:
         pacf_5 = np.nan
 
     # Sum of first 5 PACs of difference series squared
     if len(x) > 6:
         try:
-            diff1_pacf = pacf(np.diff(x, n = 1), nlags = 5, method='ldb')[1:6]
-            diff1_pacf_5 = np.sum(diff1_pacf**2)
+            diff1_pacf_5 = np.sum(pacf(np.diff(x, n = 1), nlags = 5)**2)
         except:
             diff1_pacf_5 = np.nan
     else:
@@ -110,8 +103,7 @@ def pacf_features(x):
     # Sum of first 5 PACs of twice differenced series squared
     if len(x) > 7:
         try:
-            diff2_pacf = pacf(np.diff(x, n = 2), nlags = 5, method='ldb')[1:6]
-            diff2_pacf_5 = np.sum(diff2_pacf**2)
+            diff2_pacf_5 = np.sum(pacf(np.diff(x, n = 1), nlags = 5)**2)
         except:
             diff2_pacf_5 = np.nan
     else:
@@ -120,7 +112,7 @@ def pacf_features(x):
     output = {
         'x_pacf5': pacf_5,
         'diff1x_pacf5': diff1_pacf_5,
-        'diff2x_pacf5': diff2_pacf_5
+        'diff2x_pacf5': diff1_pacf_5
     }
 
     if m > 1:
@@ -183,42 +175,34 @@ def entropy(x):
 def lumpiness(x):
     ### Unpacking series
     (x, width) = x
-
-    if width == 1:
-        width = 10
-
     nr = len(x)
-    lo = np.arange(0, nr, width)
-    up = lo + width
+    lo = np.arange(1, nr, width)
+    up = np.arange(width, nr + width, width)
     nsegs = nr / width
-    varx = [np.nanvar(x[lo[idx]:up[idx]], ddof=1) for idx in np.arange(int(nsegs))]
-    print(varx)
+    #print(np.arange(nsegs))
+    varx = [np.var(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
 
     if len(x) < 2*width:
         lumpiness = 0
     else:
-        lumpiness = np.nanvar(varx, ddof=1)
+        lumpiness = np.var(varx)
 
     return {'lumpiness': lumpiness}
 
 def stability(x):
     ### Unpacking series
     (x, width) = x
-
-    if width == 1:
-        width = 10
-
     nr = len(x)
-    lo = np.arange(0, nr, width)
-    up = lo + width
+    lo = np.arange(1, nr, width)
+    up = np.arange(width, nr + width, width)
     nsegs = nr / width
     #print(np.arange(nsegs))
-    meanx = [np.nanmean(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
+    meanx = [np.mean(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
 
     if len(x) < 2*width:
         stability = 0
     else:
-        stability = np.nanvar(meanx, ddof=1)
+        stability = np.var(meanx)
 
     return {'stability': stability}
 
@@ -289,7 +273,7 @@ def frequency(x):
 
 def scalets(x):
     # Scaling time series
-    scaledx = (x - x.mean())/x.std()
+    scaledx = scale(x, axis=0, with_mean=True, with_std=True, copy=True)
     #ts = pd.Series(scaledx, index=x.index)
     return scaledx
 
@@ -369,6 +353,10 @@ def stl_features(x):
 
     return output
 
+def sparsity(x):
+    (x, m) = x
+    return {'sparsity': np.mean(x == 0)}
+
 #### Heterogeneity coefficients
 
 #ARCH LM statistic
@@ -417,7 +405,8 @@ def tsfeatures(
                 series_length,
                 #heterogeneity,
                 flat_spots,
-                crossing_points
+                crossing_points,
+                sparsity
             ],
             scale = True,
             parallel = False,
@@ -429,9 +418,17 @@ def tsfeatures(
     if not isinstance(tslist, list):
         tslist = [tslist]
 
-
+    sp = None
     # Scaling
     if scale:
+        if sparsity in features:
+            features = [feat for feat in features if feat is not sparsity]
+            if parallel:
+                with mp.Pool(threads) as pool:
+                    sp = pool.map(sparsity, [(y, frcy) for y in tslist])
+            else:
+                sp = [sparsity((ts, frcy)) for ts in tslist]
+            sp = pd.DataFrame(sp)
         # Parallel
         if parallel:
             with mp.Pool(threads) as pool:
@@ -455,5 +452,7 @@ def tsfeatures(
 
 
     feat_df = pd.concat(ts_features).reset_index(drop=True)
+    if sp is not None:
+        feat_df = pd.concat([feat_df, sp], axis=1)
 
     return feat_df

@@ -1,5 +1,3 @@
-#from tsfeatures.funcs import *
-from sklearn.preprocessing import scale
 import pandas as pd
 from collections import ChainMap
 from statsmodels.tsa.seasonal import STL

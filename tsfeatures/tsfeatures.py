@@ -1,6 +1,6 @@
 import pandas as pd
 from collections import ChainMap
-from statsmodels.tsa.seasonal import STL
+from rstl import STL
 import numpy as np
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import acf
@@ -14,11 +14,19 @@ from statsmodels.tsa.ar_model import AR
 from statsmodels.tsa.stattools import acf
 from arch import arch_model
 import logging
+from supersmoother import SuperSmoother
 
 def poly(x, p):
     x = np.array(x)
     X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
     return np.linalg.qr(X)[0][:,1:]
+
+def embed(x, p):
+    x = np.array(x)
+    x = np.transpose(np.vstack(list((np.roll(x, k) for k in range(p)))))
+    x = x[(p-1):]
+
+    return x
 
 def acf_features(x):
     ### Unpacking series
@@ -27,7 +35,7 @@ def acf_features(x):
         m = 1
     size_x = len(x)
 
-    acfx = acf(x, nlags = max(size_x, 10), fft=False)
+    acfx = acf(x, nlags = max(m, 10), fft=False)
     if size_x > 10:
         acfdiff1x = acf(np.diff(x, n = 1), nlags =  10, fft=False)
     else:
@@ -66,7 +74,7 @@ def acf_features(x):
     }
 
     if m > 1:
-        output['seas_acf1'] = acfx[m + 2] if len(acfx) > m + 2 else np.nan
+        output['seas_acf1'] = acfx[m] if len(acfx) > m else np.nan
 
     return output
 
@@ -298,14 +306,19 @@ def stl_features(x):
     ### Unpacking series
     (x, m) = x
     # Size of ts
-    nperiods = m > 1
+    nperiods = int(m > 1)
     # STL fits
-    #print(x)
-    stlfit = STL(x, period=m).fit()
-    trend0 = stlfit.trend
-    remainder = stlfit.resid
-    #print(len(remainder))
-    seasonal = stlfit.seasonal
+    if m>1:
+        stlfit = STL(np.array(x), m, 13)
+        trend0 = stlfit.trend
+        remainder = stlfit.remainder
+        #print(len(remainder))
+        seasonal = stlfit.seasonal
+    else:
+        seasonal = np.array(x)
+        t = np.arange(len(x))+1
+        trend0 = SuperSmoother().fit(t, seasonal).predict(t)
+        remainder = seasonal - trend0
 
     # De-trended and de-seasonalized data
     detrend = x - trend0
@@ -314,10 +327,10 @@ def stl_features(x):
 
     # Summay stats
     n = len(x)
-    varx = np.nanvar(x)
-    vare = np.nanvar(remainder)
-    vardetrend = np.nanvar(detrend)
-    vardeseason = np.nanvar(deseason)
+    varx = np.nanvar(x, ddof=1)
+    vare = np.nanvar(remainder, ddof=1)
+    vardetrend = np.nanvar(detrend, ddof=1)
+    vardeseason = np.nanvar(deseason, ddof=1)
 
     #Measure of trend strength
     if varx < np.finfo(float).eps:
@@ -328,18 +341,26 @@ def stl_features(x):
         trend = max(0, min(1, 1 - vare/vardeseason))
 
     # Measure of seasonal strength
-    if varx < np.finfo(float).eps:
-        seasonality = 0
-    elif np.nanvar(remainder + seasonal) < np.finfo(float).eps:
-        seasonality = 0
-    else:
-        seasonality = max(0, min(1, 1 - vare/np.nanvar(remainder + seasonal)))
+    if m > 1:
+        if varx < np.finfo(float).eps:
+            season = 0
+        elif np.nanvar(remainder + seasonal, ddof=1) < np.finfo(float).eps:
+            season = 0
+        else:
+            season = max(0, min(1, 1 - vare/np.nanvar(remainder + seasonal, ddof=1)))
+
+        peak = (np.argmax(x)+1) % m
+        peak = m if peak == 0 else peak
+
+        trough = (np.argmin(x)+1) % m
+        trough = m if trough == 0 else trough
+
 
 
     # Compute measure of spikiness
     d = (remainder - np.nanmean(remainder))**2
     varloo = (vare*(n-1)-d)/(n-2)
-    spike = np.nanvar(varloo)
+    spike = np.nanvar(varloo, ddof=1)
 
     # Compute measures of linearity and curvature
     time = np.arange(n) + 1
@@ -356,7 +377,7 @@ def stl_features(x):
     # Assemble features
     output = {
         'nperiods': nperiods,
-        'seasonal_period': 1,
+        'seasonal_period': m,
         'trend': trend,
         'spike': spike,
         'linearity': linearity,
@@ -364,6 +385,11 @@ def stl_features(x):
         'e_acf1': acfremainder['x_acf1'],
         'e_acf10': acfremainder['x_acf10']
     }
+
+    if m>1:
+        output['seasonal_strength'] = season
+        output['peak'] = peak
+        output['trough'] = trough
 
     return output
 
@@ -376,21 +402,20 @@ def sparsity(x):
 #ARCH LM statistic
 def arch_stat(x, lags=12, demean=True):
     (x, m) = x
-    if len(x) <= 13:
+    if len(x) <= lags+1:
         return {'arch_lm': np.nan}
     if demean:
-        x = x - np.mean(x)
+        x -= np.mean(x)
 
     size_x = len(x)
-    slice_ = size_x - lags
-    xx = x**2
-    y = xx[:slice_]
-    X = np.roll(xx, -lags)[:slice_].reshape(-1, 1)
+    mat = embed(x**2, lags+1)
+    X = mat[:,1:]
+    y = np.vstack(mat[:, 0])
 
-    try:
-        r_squared = LinearRegression().fit(X, y).score(X.reshape(-1, 1), y)
-    except:
-        r_squared = np.nan
+    #try:
+    r_squared = LinearRegression().fit(X, y).score(X, y)
+    #except:
+    #    r_squared = np.nan
 
     return {'arch_lm': r_squared}
 

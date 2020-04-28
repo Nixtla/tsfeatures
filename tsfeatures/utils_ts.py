@@ -1,4 +1,22 @@
+import numpy as np
 
+def scalets(x):
+    # Scaling time series
+    scaledx = (x - x.mean())/x.std()
+    #ts = pd.Series(scaledx, index=x.index)
+    return scaledx
+
+def poly(x, p):
+    x = np.array(x)
+    X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
+    return np.linalg.qr(X)[0][:,1:]
+
+def embed(x, p):
+    x = np.array(x)
+    x = np.transpose(np.vstack(list((np.roll(x, k) for k in range(p)))))
+    x = x[(p-1):]
+
+    return x
 
 
 WWWusage = [88,84,85,85,84,85,83,85,88,89,91,99,104,112,126,

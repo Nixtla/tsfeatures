@@ -1,3 +1,6 @@
+
+import warnings
+warnings.warn = lambda *a, **kw: False
 import pandas as pd
 from collections import ChainMap
 from rstl import STL
@@ -7,32 +10,34 @@ from statsmodels.tsa.stattools import acf
 from statsmodels.tsa.stattools import pacf
 from entropy import spectral_entropy
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.api import Holt
 import multiprocessing as mp
 from sklearn.linear_model import LinearRegression
 from itertools import groupby
 from statsmodels.tsa.ar_model import AR
-from statsmodels.tsa.stattools import acf
+from statsmodels.tsa.stattools import acf, kpss
 from arch import arch_model
+from arch.unitroot import PhillipsPerron
 import logging
 from supersmoother import SuperSmoother
+import warnings
+warnings.filterwarnings('ignore')
+from tsfeatures.utils_ts import poly, embed, scalets
+from tsfeatures.custom_tests import terasvirta_test, sample_entropy
+from functools import partial
+from sklearn.utils.testing import ignore_warnings
+from sklearn.exceptions import ConvergenceWarning
+warnings.simplefilter("ignore", category=ConvergenceWarning)
 
-def poly(x, p):
-    x = np.array(x)
-    X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
-    return np.linalg.qr(X)[0][:,1:]
 
-def embed(x, p):
-    x = np.array(x)
-    x = np.transpose(np.vstack(list((np.roll(x, k) for k in range(p)))))
-    x = x[(p-1):]
 
-    return x
 
-def acf_features(x):
+def acf_features(x, freq=None):
     ### Unpacking series
-    (x, m) = x
-    if m is None:
+    if freq is None:
         m = 1
+    else:
+        m = freq
     size_x = len(x)
 
     acfx = acf(x, nlags = max(m, 10), fft=False)
@@ -78,14 +83,15 @@ def acf_features(x):
 
     return output
 
-def pacf_features(x):
+def pacf_features(x, freq=None):
     """
     Partial autocorrelation function features.
     """
-    ### Unpacking series
-    (x, m) = x
-    if m is None:
+    if freq is None:
         m = 1
+    else:
+        m = freq
+
     nlags_ = max(m, 5)
 
     if len(x) > 1:
@@ -134,11 +140,9 @@ def pacf_features(x):
 
     return output
 
-def holt_parameters(x):
-    ### Unpacking series
-    (x, m) = x
+def holt_parameters(x, freq=None):
     try :
-        fit = ExponentialSmoothing(x, trend = 'add').fit()
+        fit = Holt(x).fit()
         params = {
             'alpha': fit.params['smoothing_level'],
             'beta': fit.params['smoothing_slope']
@@ -152,53 +156,55 @@ def holt_parameters(x):
     return params
 
 
-def hw_parameters(x):
-    ### Unpacking series
-    (x, m) = x
-    # Hack: ExponentialSmothing needs a date index
-    # this must be fixed
-    dates_hack = pd.date_range(end = '2019-01-01', periods = len(x))
+def hw_parameters(x, freq=None):
+    if freq is None:
+        m = 1
+    else:
+        m = freq
     try:
-        fit = ExponentialSmoothing(x, trend = 'add', seasonal = 'add', dates = dates_hack).fit()
+        fit = ExponentialSmoothing(x, seasonal_periods=m, trend='add', seasonal='add').fit()
         params = {
-            'hwalpha': fit.params['smoothing_level'],
-            'hwbeta': fit.params['smoothing_slope'],
-            'hwgamma': fit.params['smoothing_seasonal']
+            'hw_alpha': fit.params['smoothing_level'],
+            'hw_beta': fit.params['smoothing_slope'],
+            'hw_gamma': fit.params['smoothing_seasonal']
         }
     except:
         params = {
-            'hwalpha': np.nan,
-            'hwbeta': np.nan,
-            'hwgamma': np.nan
+            'hw_alpha': np.nan,
+            'hw_beta': np.nan,
+            'hw_gamma': np.nan
         }
     return params
 
 # features
 
-def entropy(x):
-    ### Unpacking series
-    (x, m) = x
+def entropy(x, freq=None):
     try:
         # Maybe 100 can change
-        entropy = spectral_entropy(x, 1)
+        entropy = spectral_entropy(x, m, method='welch', normalize=True)
     except:
         entropy = np.nan
 
     return {'entropy': entropy}
 
-def lumpiness(x):
-    ### Unpacking series
-    (x, width) = x
+def count_entropy(x, freq=None):
+    entropy = x[x>0]*np.log(x[x>0])
+    entropy = -entropy.sum()
 
-    if width == 1:
+    return {'entropy': entropy}
+
+def lumpiness(x, freq=None):
+
+    if (freq == 1) or (freq is None):
         width = 10
+    else:
+        width = freq
 
     nr = len(x)
     lo = np.arange(0, nr, width)
     up = lo + width
     nsegs = nr / width
     varx = [np.nanvar(x[lo[idx]:up[idx]], ddof=1) for idx in np.arange(int(nsegs))]
-    print(varx)
 
     if len(x) < 2*width:
         lumpiness = 0
@@ -207,12 +213,11 @@ def lumpiness(x):
 
     return {'lumpiness': lumpiness}
 
-def stability(x):
-    ### Unpacking series
-    (x, width) = x
-
-    if width == 1:
+def stability(x, freq=None):
+    if freq == 1:
         width = 10
+    else:
+        width = freq
 
     nr = len(x)
     lo = np.arange(0, nr, width)
@@ -228,8 +233,7 @@ def stability(x):
 
     return {'stability': stability}
 
-def crossing_points(x):
-    (x, m) = x
+def crossing_points(x, freq=None):
     midline = np.median(x)
     ab = x <= midline
     lenx = len(x)
@@ -238,8 +242,7 @@ def crossing_points(x):
     cross = (p1 & (~p2)) | (p2 & (~p1))
     return {'crossing_points': cross.sum()}
 
-def flat_spots(x):
-    (x, m) = x
+def flat_spots(x, freq=None):
     try:
         cutx = pd.cut(x, bins=10, include_lowest=True, labels=False) + 1
     except:
@@ -249,11 +252,17 @@ def flat_spots(x):
 
     return {'flat_spots': rlex}
 
-def heterogeneity(x):
-    (x, m) = x
+@ignore_warnings(category=ConvergenceWarning)
+def heterogeneity(x, freq=None):
+
+    if freq is None:
+        m = 1
+    else:
+        m = freq
+
     size_x = len(x)
     order_ar = min(size_x-1, 10*np.log10(size_x)).astype(int) # Defaults for
-    x_whitened = AR(x).fit(maxlag = order_ar).resid
+    x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='c').resid
 
     # arch and box test
     x_archtest = arch_stat((x_whitened, m))['arch_lm']
@@ -272,39 +281,72 @@ def heterogeneity(x):
     output = {
         'arch_acf': LBstat,
         'garch_acf': LBstat2,
-        'arch_2': x_archtest,
+        'arch_r2': x_archtest,
         'garch_r2': x_garch_archtest
     }
 
     return output
 
-def series_length(x):
-    (x, m) = x
+def series_length(x, freq=None):
 
     return {'series_length': len(x)}
+
+
+# Unit root test statistics
+def unitroot_kpss(x, freq=None):
+    n = len(x)
+    nlags = int(4 * (n / 100)**(1 / 4))
+
+    try:
+        test_kpss, _, _, _ = kpss(x, nlags=nlags)
+    except:
+        test_kpss = np.nan
+
+    return {'unitroot_kpss': test_kpss}
+
+def unitroot_pp(x, freq=None):
+    n = len(x)
+    nlags = int(4 * (n / 100)**(1 / 4))
+
+    try:
+        test_pp = PhillipsPerron(x, trend='c', lags=nlags, test_type='rho').stat
+    except:
+        test_pp = np.nan
+
+    return {'unitroot_pp': test_pp}
+
+
+def nonlinearity(x, freq=None):
+    try:
+        test = terasvirta_test(x)
+        test = 10*test/len(x)
+    except:
+        test = np.nan
+
+    return {'nonlinearity': test}
+
+
 # Time series features based of sliding windows
 #def max_level_shift(x):
 #    width = 7 # This must be changed
 
 
-def frequency(x):
-    ### Unpacking series
-    (x, m) = x
+def frequency(x, freq=None):
+    if freq is None:
+        m = 1
+    else:
+        m = freq
     # Needs frequency of series
     return {'frequency': m}#x.index.freq}
 
-def scalets(x):
-    # Scaling time series
-    scaledx = (x - x.mean())/x.std()
-    #ts = pd.Series(scaledx, index=x.index)
-    return scaledx
-
-def stl_features(x):
+def stl_features(x, freq=None):
     """
     Returns a DF where each column is an statistic.
     """
-    ### Unpacking series
-    (x, m) = x
+    if freq is None:
+        m = 1
+    else:
+        m = freq
     # Size of ts
     nperiods = int(m > 1)
     # STL fits
@@ -317,7 +359,21 @@ def stl_features(x):
     else:
         seasonal = np.array(x)
         t = np.arange(len(x))+1
-        trend0 = SuperSmoother().fit(t, seasonal).predict(t)
+        try:
+            trend0 = SuperSmoother().fit(t, seasonal).predict(t)
+        except:
+            output = {
+                'nperiods': nperiods,
+                'seasonal_period': m,
+                'trend': np.nan,
+                'spike': np.nan,
+                'linearity': np.nan,
+                'curvature': np.nan,
+                'e_acf1': np.nan,
+                'e_acf10': np.nan
+            }
+
+            return output
         remainder = seasonal - trend0
 
     # De-trended and de-seasonalized data
@@ -366,7 +422,7 @@ def stl_features(x):
     time = np.arange(n) + 1
     poly_m = poly(time, 2)
     time_x = sm.add_constant(poly_m)
-    coefs = sm.OLS(trend0, time_x).fit().params
+    coefs = sm.OLS(-trend0, time_x).fit().params
 
     linearity = coefs[1]
     curvature = coefs[2]
@@ -393,15 +449,13 @@ def stl_features(x):
 
     return output
 
-def sparsity(x):
-    (x, m) = x
+def sparsity(x, freq=None):
     return {'sparsity': np.mean(x == 0)}
 
 #### Heterogeneity coefficients
 
 #ARCH LM statistic
-def arch_stat(x, lags=12, demean=True):
-    (x, m) = x
+def arch_stat(x, freq=None, lags=12, demean=True):
     if len(x) <= lags+1:
         return {'arch_lm': np.nan}
     if demean:
@@ -420,33 +474,31 @@ def arch_stat(x, lags=12, demean=True):
     return {'arch_lm': r_squared}
 
 # Main functions
-def _get_feats(tuple_ts_features):
-    (ts_, features) = tuple_ts_features
-    c_map = ChainMap(*[dict_feat for dict_feat in [func(ts_) for func in features]])
+def get_feats(index, ts, freq, scale=True,
+              features = [acf_features, arch_stat, crossing_points,
+                          entropy, flat_spots, heterogeneity, holt_parameters,
+                          lumpiness, nonlinearity, pacf_features, stl_features,
+                          stability, hw_parameters, unitroot_kpss, unitroot_pp]):
 
-    return pd.DataFrame(dict(c_map), index = [0])
+
+    if isinstance(ts, pd.DataFrame):
+        assert 'y' in ts.columns
+        ts = ts['y'].values
+
+    if scale:
+        ts = scalets(ts)
+
+    c_map = ChainMap(*[dict_feat for dict_feat in [func(ts, freq) for func in features]])
+
+    return pd.DataFrame(dict(c_map), index = [index])
 
 def tsfeatures(
-            tslist,
-            frcy,
-            features = [
-                stl_features,
-                frequency,
-                entropy,
-                acf_features,
-                pacf_features,
-                holt_parameters,
-                hw_parameters,
-                #entropy,
-                lumpiness,
-                stability,
-                arch_stat,
-                series_length,
-                #heterogeneity,
-                flat_spots,
-                crossing_points,
-                sparsity
-            ],
+            ts,
+            freq,
+            features = [acf_features, arch_stat, crossing_points,
+                        entropy, flat_spots, heterogeneity, holt_parameters,
+                        lumpiness, nonlinearity, pacf_features, stl_features,
+                        stability, hw_parameters, unitroot_kpss, unitroot_pp],
             scale = True,
             parallel = False,
             threads = None
@@ -454,44 +506,29 @@ def tsfeatures(
     """
     tslist: list of numpy arrays or pandas Series class
     """
-    if not isinstance(tslist, list):
-        tslist = [tslist]
-
-    sp = None
-    # Scaling
-    if scale:
-        if sparsity in features:
-            features = [feat for feat in features if feat is not sparsity]
-            if parallel:
-                with mp.Pool(threads) as pool:
-                    sp = pool.map(sparsity, [(y, frcy) for y in tslist])
-            else:
-                sp = [sparsity((ts, frcy)) for ts in tslist]
-            sp = pd.DataFrame(sp)
-        # Parallel
-        if parallel:
-            with mp.Pool(threads) as pool:
-                tslist = pool.map(scalets, tslist)
-        else:
-            tslist = [scalets(ts) for ts in tslist]
+    # if isinstance(ts, pd.DataFrame):
+    #     assert all([(col in ts) for col in ['unique_id', 'ds', 'y']])
+    #
+    # if isinstance(ts, pd.Series):
+    #     assert all([(col in ts.index) for col in ['unique_id', 'ds']])
 
 
     # There's methods which needs frequency
     # This is a hack for this
-    # each feature function receives a tuple (ts, frcy)
-    tslist = [(ts, frcy) for ts in tslist]
+    # each feature function receives a tuple (ts, freq)
+    #tslist = [(ts, freq) for ts in tslist]
 
+    partial_get_feats = partial(get_feats, freq=freq, scale=scale, features=features)
     # Init parallel
     if parallel:
-        n_series = len(tslist)
+        n_series = len(ts)
+
         with mp.Pool(threads) as pool:
-            ts_features = pool.map(_get_feats, zip(tslist, [features for i in range(n_series)]))
+            ts_features = pool.starmap(partial_get_feats, ts.groupby('unique_id'))
     else:
-        ts_features = [_get_feats((ts, features)) for ts in tslist]
+        ts_features = [partial_get_feats(idx, df) for idx, df in ts.groupby('unique_id')]
 
 
-    feat_df = pd.concat(ts_features).reset_index(drop=True)
-    if sp is not None:
-        feat_df = pd.concat([feat_df, sp], axis=1)
+    feat_df = pd.concat(ts_features)
 
     return feat_df

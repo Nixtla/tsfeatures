@@ -262,7 +262,10 @@ def heterogeneity(x, freq=None):
 
     size_x = len(x)
     order_ar = min(size_x-1, 10*np.log10(size_x)).astype(int) # Defaults for
-    x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='c').resid
+    try:
+        x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='c').resid
+    except:
+        x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='nc').resid
 
     # arch and box test
     x_archtest = arch_stat((x_whitened, m))['arch_lm']

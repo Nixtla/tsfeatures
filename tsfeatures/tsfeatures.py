@@ -364,6 +364,8 @@ def stl_features(x, freq=None):
                 'e_acf10': np.nan
             }
 
+            return output
+
         trend0 = stlfit.trend
         remainder = stlfit.remainder
         #print(len(remainder))

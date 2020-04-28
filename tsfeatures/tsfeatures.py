@@ -350,7 +350,20 @@ def stl_features(x, freq=None):
     nperiods = int(m > 1)
     # STL fits
     if m>1:
-        stlfit = STL(np.array(x), m, 13)
+        try:
+            stlfit = STL(np.array(x), m, 13)
+        except:
+            output = {
+                'nperiods': nperiods,
+                'seasonal_period': m,
+                'trend': np.nan,
+                'spike': np.nan,
+                'linearity': np.nan,
+                'curvature': np.nan,
+                'e_acf1': np.nan,
+                'e_acf10': np.nan
+            }
+
         trend0 = stlfit.trend
         remainder = stlfit.remainder
         #print(len(remainder))

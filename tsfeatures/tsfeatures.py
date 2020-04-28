@@ -1,33 +1,30 @@
 
 import warnings
 warnings.warn = lambda *a, **kw: False
+
 import pandas as pd
+import numpy as np
 from collections import ChainMap
 from rstl import STL
-import numpy as np
+
 import statsmodels.api as sm
-from statsmodels.tsa.stattools import acf
-from statsmodels.tsa.stattools import pacf
-from entropy import spectral_entropy
+from statsmodels.tsa.stattools import acf, pacf, kpss
+from statsmodels.tsa.ar_model import AR
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.api import Holt
+
+from entropy import spectral_entropy
 import multiprocessing as mp
+
 from sklearn.linear_model import LinearRegression
 from itertools import groupby
-from statsmodels.tsa.ar_model import AR
-from statsmodels.tsa.stattools import acf, kpss
 from arch import arch_model
 from arch.unitroot import PhillipsPerron
-import logging
 from supersmoother import SuperSmoother
-import warnings
-warnings.filterwarnings('ignore')
+from functools import partial
+
 from tsfeatures.utils_ts import poly, embed, scalets
 from tsfeatures.custom_tests import terasvirta_test, sample_entropy
-from functools import partial
-from sklearn.utils.testing import ignore_warnings
-from sklearn.exceptions import ConvergenceWarning
-warnings.simplefilter("ignore", category=ConvergenceWarning)
 
 
 
@@ -252,7 +249,6 @@ def flat_spots(x, freq=None):
 
     return {'flat_spots': rlex}
 
-@ignore_warnings(category=ConvergenceWarning)
 def heterogeneity(x, freq=None):
 
     if freq is None:

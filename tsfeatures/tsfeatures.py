@@ -428,7 +428,7 @@ def stl_features(x, freq=None):
     curvature = coefs[2]
 
     # ACF features
-    acfremainder = acf_features((remainder, m))
+    acfremainder = acf_features(remainder, m)
 
     # Assemble features
     output = {

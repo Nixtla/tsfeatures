@@ -3,11 +3,16 @@
 
 import argparse
 
-from ESRNN.m4_data import prepare_m4_data, seas_dict
+from ESRNN.m4_data import prepare_m4_data
 from ESRNN.utils_evaluation import evaluate_prediction_owa
 from ESRNN import ESRNN
 
 from tsfeatures import tsfeatures
+
+
+freqs = {'Hourly': 24, 'Daily': 1,
+         'Monthly': 1, 'Quarterly': 4,
+         'Weekly':1,'Yearly':1}
 
 def get_features_m4(dataset_name, directory, num_obs=1000000, parallel=True):
     print('\n')
@@ -16,7 +21,7 @@ def get_features_m4(dataset_name, directory, num_obs=1000000, parallel=True):
                                           directory = directory,
                                           num_obs=num_obs)
 
-    freq = seas_dict[dataset_name]['seasonality']
+    freq = freqs[dataset_name]
     feats = tsfeatures(y_train_df, freq=freq, parallel=parallel)
     feats = feats.rename_axis('unique_id')
 
@@ -33,7 +38,7 @@ def main(args):
     if args.dataset_name:
         datasets = [args.dataset_name]
     else:
-        datasets = seas_dict.keys()
+        datasets = freqs.keys()
 
     for dataset_name in datasets:
         get_features_m4(dataset_name, args.results_directory, num_obs)

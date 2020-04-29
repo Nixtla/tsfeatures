@@ -436,10 +436,10 @@ def stl_features(x, freq=None):
     time = np.arange(n) + 1
     poly_m = poly(time, 2)
     time_x = sm.add_constant(poly_m)
-    coefs = sm.OLS(-trend0, time_x).fit().params
+    coefs = sm.OLS(trend0, time_x).fit().params
 
     linearity = coefs[1]
-    curvature = coefs[2]
+    curvature = -coefs[2]
 
     # ACF features
     acfremainder = acf_features(remainder, m)
@@ -487,12 +487,19 @@ def arch_stat(x, freq=None, lags=12, demean=True):
 
     return {'arch_lm': r_squared}
 
+def series_length(x, freq=None):
+    return {'series_length': len(x)}
+
+def hurst(x, freq=None):
+    return {'hurst': np.nan}
+
 # Main functions
 def get_feats(index, ts, freq, scale=True,
               features = [acf_features, arch_stat, crossing_points,
                           entropy, flat_spots, heterogeneity, holt_parameters,
                           lumpiness, nonlinearity, pacf_features, stl_features,
-                          stability, hw_parameters, unitroot_kpss, unitroot_pp]):
+                          stability, hw_parameters, unitroot_kpss, unitroot_pp,
+                          series_length, hurst]):
 
 
     if isinstance(ts, pd.DataFrame):
@@ -515,7 +522,8 @@ def tsfeatures(
             features = [acf_features, arch_stat, crossing_points,
                         entropy, flat_spots, heterogeneity, holt_parameters,
                         lumpiness, nonlinearity, pacf_features, stl_features,
-                        stability, hw_parameters, unitroot_kpss, unitroot_pp],
+                        stability, hw_parameters, unitroot_kpss, unitroot_pp,
+                        series_length, hurst],
             scale = True,
             parallel = False,
             threads = None

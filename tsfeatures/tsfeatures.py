@@ -499,6 +499,9 @@ def get_feats(index, ts, freq, scale=True,
         assert 'y' in ts.columns
         ts = ts['y'].values
 
+    if isinstance(ts, pd.Series):
+        ts = ts.values
+
     if scale:
         ts = scalets(ts)
 

@@ -11,7 +11,7 @@ from tsfeatures import *
 
 
 freqs = {'Hourly': 24, 'Daily': 1,
-         'Monthly': 1, 'Quarterly': 4,
+         'Monthly': 12, 'Quarterly': 4,
          'Weekly':1, 'Yearly': 1}
 
 feats_scaled_ts = [acf_features, arch_stat, crossing_points,

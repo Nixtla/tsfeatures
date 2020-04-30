@@ -20,13 +20,12 @@ from sklearn.linear_model import LinearRegression
 from itertools import groupby
 from arch import arch_model
 from arch.unitroot import PhillipsPerron
-from supersmoother import SuperSmoother
+#from supersmoother import SuperSmoother
+from supsmu import supsmu
 from functools import partial
 
-from tsfeatures.utils_ts import poly, embed, scalets
+from tsfeatures.utils_ts import poly, embed, scalets, hurst_ernie_chan
 from tsfeatures.custom_tests import terasvirta_test, sample_entropy
-
-
 
 
 def acf_features(x, freq=None):
@@ -178,7 +177,7 @@ def hw_parameters(x, freq=None):
 def entropy(x, freq=None):
     try:
         # Maybe 100 can change
-        entropy = spectral_entropy(x, m, method='welch', normalize=True)
+        entropy = spectral_entropy(x, freq, method='welch', normalize=True)
     except:
         entropy = np.nan
 
@@ -305,7 +304,10 @@ def unitroot_kpss(x, freq=None):
 
 def unitroot_pp(x, freq=None):
     n = len(x)
-    nlags = int(4 * (n / 100)**(1 / 4))
+    nlags = 4 * (n / 100)**(1 / 4)
+
+    nlags, _ = divmod(nlags, 1)
+    nlags = int(nlags)
 
     try:
         test_pp = PhillipsPerron(x, trend='c', lags=nlags, test_type='rho').stat
@@ -349,7 +351,7 @@ def stl_features(x, freq=None):
     # Size of ts
     nperiods = int(m > 1)
     # STL fits
-    if m>1:
+    if m > 1:
         try:
             stlfit = STL(np.array(x), m, 13)
         except:
@@ -371,10 +373,10 @@ def stl_features(x, freq=None):
         #print(len(remainder))
         seasonal = stlfit.seasonal
     else:
-        seasonal = np.array(x)
+        deseas = np.array(x)
         t = np.arange(len(x))+1
         try:
-            trend0 = SuperSmoother().fit(t, seasonal).predict(t)
+            trend0 = supsmu(t, deseas)#SuperSmoother().fit(t, deseas).predict(t)
         except:
             output = {
                 'nperiods': nperiods,
@@ -388,7 +390,8 @@ def stl_features(x, freq=None):
             }
 
             return output
-        remainder = seasonal - trend0
+        remainder = deseas - trend0
+        seasonal = np.zeros(len(x))
 
     # De-trended and de-seasonalized data
     detrend = x - trend0
@@ -419,10 +422,10 @@ def stl_features(x, freq=None):
         else:
             season = max(0, min(1, 1 - vare/np.nanvar(remainder + seasonal, ddof=1)))
 
-        peak = (np.argmax(x)+1) % m
+        peak = (np.argmax(seasonal)+1) % m
         peak = m if peak == 0 else peak
 
-        trough = (np.argmin(x)+1) % m
+        trough = (np.argmin(seasonal)+1) % m
         trough = m if trough == 0 else trough
 
 
@@ -491,7 +494,13 @@ def series_length(x, freq=None):
     return {'series_length': len(x)}
 
 def hurst(x, freq=None):
-    return {'hurst': np.nan}
+
+    try:
+        hurst_index = hurst_ernie_chan(x)
+    except:
+        hurst_index = np.nan
+
+    return {'hurst': hurst_index}
 
 # Main functions
 def get_feats(index, ts, freq, scale=True,

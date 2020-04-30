@@ -7,12 +7,21 @@ from ESRNN.m4_data import prepare_m4_data
 from ESRNN.utils_evaluation import evaluate_prediction_owa
 from ESRNN import ESRNN
 
-from tsfeatures import tsfeatures
+from tsfeatures import *
 
 
 freqs = {'Hourly': 24, 'Daily': 1,
          'Monthly': 1, 'Quarterly': 4,
-         'Weekly':1,'Yearly':1}
+         'Weekly':1, 'Yearly': 1}
+
+feats_scaled_ts = [acf_features, arch_stat, crossing_points,
+                   entropy, flat_spots, heterogeneity, holt_parameters,
+                   lumpiness, nonlinearity, pacf_features,
+                   stability, hw_parameters, unitroot_kpss, unitroot_pp,
+                   series_length, hurst]
+
+feats_no_scaled_ts = [stl_features]
+
 
 def get_features_m4(dataset_name, directory, num_obs=1000000, parallel=True):
     print('\n')
@@ -22,6 +31,7 @@ def get_features_m4(dataset_name, directory, num_obs=1000000, parallel=True):
                                           num_obs=num_obs)
 
     freq = freqs[dataset_name]
+    
     feats = tsfeatures(y_train_df, freq=freq, parallel=parallel)
     feats = feats.rename_axis('unique_id')
 

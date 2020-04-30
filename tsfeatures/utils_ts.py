@@ -1,5 +1,4 @@
 import numpy as np
-
 def scalets(x):
     # Scaling time series
     scaledx = (x - x.mean())/x.std()
@@ -17,6 +16,33 @@ def embed(x, p):
     x = x[(p-1):]
 
     return x
+
+def hurst_ernie_chan(p, lags=12):
+    #taken from
+    #https://stackoverflow.com/questions/39488806/hurst-exponent-in-python
+
+    variancetau = []; tau = []
+
+    for lag in range(2, lags):
+
+        #  Write the different lags into a vector to compute a set of tau or lags
+        tau.append(lag)
+
+        # Compute the log returns on all days, then compute the variance on the difference in log returns
+        # call this pp or the price difference
+        pp = np.subtract(p[lag:], p[:-lag])
+        variancetau.append(np.var(pp))
+
+    # we now have a set of tau or lags and a corresponding set of variances.
+    #print tau
+    #print variancetau
+
+    # plot the log of those variance against the log of tau and get the slope
+    m = np.polyfit(np.log10(tau),np.log10(variancetau),1)
+
+    hurst = m[0] / 2
+
+    return hurst
 
 
 WWWusage = [88,84,85,85,84,85,83,85,88,89,91,99,104,112,126,

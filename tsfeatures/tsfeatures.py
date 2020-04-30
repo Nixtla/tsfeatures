@@ -19,13 +19,12 @@ import multiprocessing as mp
 from sklearn.linear_model import LinearRegression
 from itertools import groupby
 from arch import arch_model
-from arch.unitroot import PhillipsPerron
 #from supersmoother import SuperSmoother
 from supsmu import supsmu
 from functools import partial
 
-from tsfeatures.utils_ts import poly, embed, scalets, hurst_ernie_chan
-from tsfeatures.custom_tests import terasvirta_test, sample_entropy
+from tsfeatures.utils_ts import poly, embed, scalets
+from tsfeatures.custom_tests import terasvirta_test, sample_entropy, hurst_ernie_chan, ur_pp
 
 
 def acf_features(x, freq=None):
@@ -303,14 +302,8 @@ def unitroot_kpss(x, freq=None):
     return {'unitroot_kpss': test_kpss}
 
 def unitroot_pp(x, freq=None):
-    n = len(x)
-    nlags = 4 * (n / 100)**(1 / 4)
-
-    nlags, _ = divmod(nlags, 1)
-    nlags = int(nlags)
-
     try:
-        test_pp = PhillipsPerron(x, trend='c', lags=nlags, test_type='rho').stat
+        test_pp = ur_pp(x)
     except:
         test_pp = np.nan
 

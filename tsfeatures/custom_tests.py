@@ -97,3 +97,70 @@ def sample_entropy(x):
     se = -1 * np.log(similarity_ratio)
     se = np.reshape(se, -1)
     return se[0]
+
+def hurst_ernie_chan(p, lags=12):
+    #taken from
+    #https://stackoverflow.com/questions/39488806/hurst-exponent-in-python
+
+    variancetau = []; tau = []
+
+    for lag in range(2, lags):
+
+        #  Write the different lags into a vector to compute a set of tau or lags
+        tau.append(lag)
+
+        # Compute the log returns on all days, then compute the variance on the difference in log returns
+        # call this pp or the price difference
+        pp = np.subtract(p[lag:], p[:-lag])
+        variancetau.append(np.var(pp))
+
+    # we now have a set of tau or lags and a corresponding set of variances.
+    #print tau
+    #print variancetau
+
+    # plot the log of those variance against the log of tau and get the slope
+    m = np.polyfit(np.log10(tau),np.log10(variancetau),1)
+
+    hurst = m[0] / 2
+
+    return hurst
+
+def ur_pp(x):
+    n = len(x)
+    lmax = 4 * (n / 100)**(1 / 4)
+
+    lmax, _ = divmod(lmax, 1)
+    lmax = int(lmax)
+
+    y, y_l1 = x[1:], x[:(n-1)]
+
+    n-=1
+
+    y_l1 = sm.add_constant(y_l1)
+
+    model = sm.OLS(y, y_l1).fit()
+    my_tstat, res = model.tvalues[0], model.resid
+    s = 1 / (n * np.sum(res**2))
+    myybar = (1/n**2)*(((y-y.mean())**2).sum())
+    myy = (1/n**2)*((y**2).sum())
+    my = (n**(-3/2))*(y.sum())
+
+    idx = np.arange(lmax)
+    coprods = []
+    for i in idx:
+        first_del = res[(i+1):]
+        sec_del = res[:(n-i-1)]
+        prod = first_del*sec_del
+        coprods.append(prod.sum())
+    coprods = np.array(coprods)
+
+    weights = 1 - (idx+1)/(lmax+1)
+    sig = s + (2/n)*((weights*coprods).sum())
+    lambda_ = 0.5*(sig-s)
+    lambda_prime = lambda_/sig
+
+    alpha = model.params[1]
+
+    test_stat = n*(alpha-1)-lambda_/myybar
+
+    return test_stat

@@ -262,7 +262,7 @@ def heterogeneity(x, freq=None):
         x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='nc').resid
 
     # arch and box test
-    x_archtest = arch_stat((x_whitened, m))['arch_lm']
+    x_archtest = arch_stat(x_whitened, m)['arch_lm']
     LBstat = (acf(x_whitened**2, nlags=12, fft=False)[1:]**2).sum()
 
     #Fit garch model
@@ -270,7 +270,7 @@ def heterogeneity(x, freq=None):
 
     # compare arch test before and after fitting garch
     garch_fit_std = garch_fit.resid
-    x_garch_archtest = arch_stat((garch_fit_std, m))['arch_lm']
+    x_garch_archtest = arch_stat(garch_fit_std, m)['arch_lm']
 
     # compare Box test of squared residuals before and after fittig.garch
     LBstat2 = (acf(garch_fit_std**2, nlags=12, fft=False)[1:]**2).sum()

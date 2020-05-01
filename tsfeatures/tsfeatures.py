@@ -341,7 +341,6 @@ def stl_features(x, freq=None):
         m = 1
     else:
         m = freq
-    # Size of ts
     nperiods = int(m > 1)
     # STL fits
     if m > 1:
@@ -363,13 +362,12 @@ def stl_features(x, freq=None):
 
         trend0 = stlfit.trend
         remainder = stlfit.remainder
-        #print(len(remainder))
         seasonal = stlfit.seasonal
     else:
         deseas = np.array(x)
         t = np.arange(len(x))+1
         try:
-            trend0 = supsmu(t, deseas)#SuperSmoother().fit(t, deseas).predict(t)
+            trend0 = supsmu(t, deseas)
         except:
             output = {
                 'nperiods': nperiods,
@@ -435,7 +433,7 @@ def stl_features(x, freq=None):
     coefs = sm.OLS(trend0, time_x).fit().params
 
     linearity = coefs[1]
-    curvature = -coefs[2]
+    curvature = -coefs[2] if m > 1 else coefs[2]
 
     # ACF features
     acfremainder = acf_features(remainder, m)

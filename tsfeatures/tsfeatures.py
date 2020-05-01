@@ -257,7 +257,7 @@ def heterogeneity(x, freq=None):
         m = freq
 
     size_x = len(x)
-    order_ar = min(size_x-1, 10*np.log10(size_x)).astype(int) # Defaults for
+    order_ar = min(size_x-1, np.floor(10*np.log10(size_x))).astype(int) # Defaults for
     try:
         x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='c').resid
     except:

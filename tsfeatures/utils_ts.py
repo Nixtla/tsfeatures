@@ -1,7 +1,7 @@
 import numpy as np
 def scalets(x):
     # Scaling time series
-    scaledx = (x - x.mean())/x.std()
+    scaledx = (x - x.mean())/x.std(ddof=1)
     #ts = pd.Series(scaledx, index=x.index)
     return scaledx
 

@@ -98,32 +98,26 @@ def sample_entropy(x):
     se = np.reshape(se, -1)
     return se[0]
 
-def hurst_ernie_chan(p, lags=12):
-    #taken from
-    #https://stackoverflow.com/questions/39488806/hurst-exponent-in-python
+def hurst_exponent(sig):
+    #taken from https://gist.github.com/alexvorndran/aad69fa741e579aad093608ccaab4fe1
+    #based on https://codereview.stackexchange.com/questions/224360/hurst-exponent-calculator
+    n = sig.size  # num timesteps
+    t = np.arange(1, n+1)
+    y = sig.cumsum()  # marginally more efficient than: np.cumsum(sig)
+    mean_t = y / t  # running mean
 
-    variancetau = []; tau = []
+    s_t = np.sqrt(
+        np.array([np.mean((sig[:i+1] - mean_t[i])**2) for i in range(n)])
+    )
+    r_t = np.array([np.ptp(y[:i+1] - t[:i+1] * mean_t[i]) for i in range(n)])
 
-    for lag in range(2, lags):
+    r_s = r_t / s_t
+    r_s = np.log(r_s)[1:]
+    n = np.log(t)[1:]
+    a = np.column_stack((n, np.ones(n.size)))
+    hurst_exponent, _ = np.linalg.lstsq(a, r_s, rcond=-1)[0]
 
-        #  Write the different lags into a vector to compute a set of tau or lags
-        tau.append(lag)
-
-        # Compute the log returns on all days, then compute the variance on the difference in log returns
-        # call this pp or the price difference
-        pp = np.subtract(p[lag:], p[:-lag])
-        variancetau.append(np.var(pp))
-
-    # we now have a set of tau or lags and a corresponding set of variances.
-    #print tau
-    #print variancetau
-
-    # plot the log of those variance against the log of tau and get the slope
-    m = np.polyfit(np.log10(tau),np.log10(variancetau),1)
-
-    hurst = m[0] / 2
-
-    return hurst
+    return hurst_exponent
 
 def ur_pp(x):
     n = len(x)

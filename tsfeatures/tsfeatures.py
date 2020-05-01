@@ -4,6 +4,7 @@ warnings.warn = lambda *a, **kw: False
 
 import pandas as pd
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 from collections import ChainMap
 from rstl import STL
 
@@ -24,7 +25,8 @@ from supsmu import supsmu
 from functools import partial
 
 from tsfeatures.utils_ts import poly, embed, scalets
-from tsfeatures.custom_tests import terasvirta_test, sample_entropy, hurst_ernie_chan, ur_pp
+from tsfeatures.custom_tests import terasvirta_test, sample_entropy, \
+                                    hurst_exponent, ur_pp
 
 
 def acf_features(x, freq=None):
@@ -320,11 +322,6 @@ def nonlinearity(x, freq=None):
     return {'nonlinearity': test}
 
 
-# Time series features based of sliding windows
-#def max_level_shift(x):
-#    width = 7 # This must be changed
-
-
 def frequency(x, freq=None):
     if freq is None:
         m = 1
@@ -433,7 +430,7 @@ def stl_features(x, freq=None):
     coefs = sm.OLS(trend0, time_x).fit().params
 
     linearity = coefs[1]
-    curvature = -coefs[2] if m > 1 else coefs[2]
+    curvature = -coefs[2] #if m > 1 else coefs[2]
 
     # ACF features
     acfremainder = acf_features(remainder, m)
@@ -474,10 +471,10 @@ def arch_stat(x, freq=None, lags=12, demean=True):
     X = mat[:,1:]
     y = np.vstack(mat[:, 0])
 
-    #try:
-    r_squared = LinearRegression().fit(X, y).score(X, y)
-    #except:
-    #    r_squared = np.nan
+    try:
+        r_squared = LinearRegression().fit(X, y).score(X, y)
+    except:
+        r_squared = np.nan
 
     return {'arch_lm': r_squared}
 
@@ -487,7 +484,7 @@ def series_length(x, freq=None):
 def hurst(x, freq=None):
 
     try:
-        hurst_index = hurst_ernie_chan(x)
+        hurst_index = hurst_exponent(x)
     except:
         hurst_index = np.nan
 

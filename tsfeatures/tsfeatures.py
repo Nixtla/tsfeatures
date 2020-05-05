@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
 from collections import ChainMap
-from rstl import STL
+from statsmodels.tsa.seasonal import STL
 
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import acf, pacf, kpss
@@ -342,7 +342,7 @@ def stl_features(x, freq=None):
     # STL fits
     if m > 1:
         try:
-            stlfit = STL(np.array(x), m, 13)
+            stlfit = STL(np.array(x), m, 13).fit()
         except:
             output = {
                 'nperiods': nperiods,
@@ -358,7 +358,7 @@ def stl_features(x, freq=None):
             return output
 
         trend0 = stlfit.trend
-        remainder = stlfit.remainder
+        remainder = stlfit.resid
         seasonal = stlfit.seasonal
     else:
         deseas = np.array(x)

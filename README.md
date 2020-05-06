@@ -38,3 +38,49 @@ tsfeatures(series, frcy=7)
 tsfeatures(series, frcy=7, parallel=True)
 ```
 
+## Sum of absolute differences versus the R implementation
+
+| feature           | diff  |
+|:------------------|------:|
+| series_length     |  0    |
+| trough            |  0    |
+| peak              |  0    |
+| nperiods          |  0    |
+| seasonal_period   |  0    |
+| crossing_points   |  0    |
+| spike             |  0    |
+| arch_lm           |  0    |
+| stability         |  0    |
+| seasonal_strength |  0    |
+| e_acf1            |  0    |
+| trend             |  0    |
+| e_acf10           |  0    |
+| x_pacf5           |  0    |
+| seas_pacf         |  0    |
+| seas_acf1         |  0    |
+| x_acf1            |  0    |
+| lumpiness         |  0    |
+| diff1_acf1        |  0    |
+| diff1_acf10       |  0    |
+| nonlinearity      |  0    |
+| x_acf10           |  0    |
+| diff2_acf1        |  0    |
+| diff2_acf10       |  0    |
+| diff1x_pacf5      |  0    |
+| unitroot_kpss     |  0    |
+| curvature         |  0    |
+| linearity         |  0    |
+| diff2x_pacf5      |  0    |
+| unitroot_pp       |  0    |
+| arch_acf          |  0.24 |
+| arch_r2           |  0.25 |
+| hw_alpha          |  1.88 |
+| hw_beta           |  1.99 |
+| flat_spots        |  2.00 |
+| entropy           |  2.33 |
+| garch_r2          |  2.51 |
+| garch_acf         |  3.00 |
+| alpha             |  3.42 |
+| beta              |  3.78 |
+| hw_gamma          |  4.18 |
+| hurst             | 12.41 |

@@ -526,19 +526,9 @@ def tsfeatures(
             threads = None
     ):
     """
-    tslist: list of numpy arrays or pandas Series class
+    ts: pandas df
+            panel with columns unique_id, ds, y
     """
-    # if isinstance(ts, pd.DataFrame):
-    #     assert all([(col in ts) for col in ['unique_id', 'ds', 'y']])
-    #
-    # if isinstance(ts, pd.Series):
-    #     assert all([(col in ts.index) for col in ['unique_id', 'ds']])
-
-
-    # There's methods which needs frequency
-    # This is a hack for this
-    # each feature function receives a tuple (ts, freq)
-    #tslist = [(ts, freq) for ts in tslist]
 
     partial_get_feats = partial(get_feats, freq=freq, scale=scale, features=features)
     # Init parallel

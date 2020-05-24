@@ -2,13 +2,6 @@
 
 This library replicates _[tsfeatures](https://github.com/robjhyndman/tsfeatures)_, R package.
 
-# Needed libraries
-
-
-``` python
-pip install arch
-pip install git+https://github.com/statsmodels/statsmodels
-```
 
 # Install
 
@@ -23,18 +16,15 @@ pip install git+https://github.com/FedericoGarza/tsfeatures
 from tsfeatures import tsfeatures
 ```
 
-This package receives a list of time series and a frecuency.
+This package receives a panel pandas df with columns `unique_id`, `ds`, `y`.
 
 ``` python
-series = []
-frcy = 7
-tsfeatures(series, frcy=7)
+tsfeatures(panel, freq=7)
 ```
 
 ## Parallel!
 
 
 ``` python
-tsfeatures(series, frcy=7, parallel=True)
+tsfeatures(panel, freq=7, parallel=True)
 ```
-

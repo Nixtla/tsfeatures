@@ -457,6 +457,14 @@ def stl_features(x, freq=None):
 def sparsity(x, freq=None):
     return {'sparsity': np.mean(x == 0)}
 
+def intervals(x):
+    x[x>0] = 1
+
+    y = [sum(val) for keys, val in groupby(x, key=lambda k: k != 0) if keys != 0]
+    y = np.array(y)
+
+    return {'intervals_mean': np.mean(y), 'intervals_sd':np.std(y, ddof=1)}
+
 #### Heterogeneity coefficients
 
 #ARCH LM statistic

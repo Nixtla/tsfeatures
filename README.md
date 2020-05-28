@@ -18,6 +18,8 @@ from tsfeatures import tsfeatures
 
 This package receives a panel pandas df with columns `unique_id`, `ds`, `y`.
 
+<img src=https://raw.githubusercontent.com/FedericoGarza/tsfeatures/master/.github/images/y_train.png width="152">
+
 ``` python
 tsfeatures(panel, freq=7)
 ```

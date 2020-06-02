@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="tsfeatures-FedericoGarza", # Replace with your own username
+    name="tsfeatures",
     version="0.0.1",
     author="Federico Garza",
     author_email="fede.garza.ramirez@gmail.com",

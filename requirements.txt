@@ -1,5 +1,4 @@
 arch==4.11
-git+https://github.com/raphaelvallat/entropy.git@c25553f8b9f8529eb456b93c5dec53c86c779a01#egg=entropy
 ESRNN==0.1.2
 more-itertools==6.0.0
 pandas==0.25.2

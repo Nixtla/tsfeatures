@@ -29,7 +29,6 @@ setuptools.setup(
         "statsmodels==0.11.1",
         "stldecompose==0.0.5",
         "supersmoother==0.4",
-        "numpy==1.16.1",
-        "supsmu@git+https://github.com/jakevdp/supsmu"
+        "numpy==1.16.1"
     ]
 )

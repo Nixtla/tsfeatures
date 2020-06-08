@@ -1,3 +1,9 @@
+[![Build](https://github.com/FedericoGarza/tsfeatures/workflows/Python%20package/badge.svg)](https://github.com/FedericoGarza/tsfeatures/tree/master)
+[![PyPI version fury.io](https://badge.fury.io/py/tsfeatures.svg)](https://pypi.python.org/pypi/tsfeatures/)
+<!-- [![Downloads](https://pepy.tech/badge/tsfeatures)](https://pepy.tech/project/tsfeatures) -->
+[![Python 3.6+](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/release/python-360+/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/FedericoGarza/tsfeatures/blob/master/LICENSE)
+
 # tsfeatures
 
 This library replicates _[tsfeatures](https://github.com/robjhyndman/tsfeatures)_, R package.

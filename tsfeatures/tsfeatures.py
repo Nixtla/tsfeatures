@@ -48,7 +48,7 @@ def acf_features(x, freq=None):
         acfdiff2x = [np.nan]*2
 
     # first autocorrelation coefficient
-    acf_1 = acfx[1]
+    acf_1 = acfx[1] if size_x > 1 else np.nan
 
     # sum of squares of first 10 autocorrelation coefficients
     sum_of_sq_acf10 = np.sum((acfx[1:11])**2) if size_x > 10 else np.nan
@@ -428,8 +428,8 @@ def stl_features(x, freq=None):
     time_x = sm.add_constant(poly_m)
     coefs = sm.OLS(trend0, time_x).fit().params
 
-    linearity = coefs[1]
-    curvature = -coefs[2] #if m > 1 else coefs[2]
+    linearity = coefs[1] if len(coefs) > 1 else np.nan
+    curvature = -coefs[2] if len(coefs) > 2 else np.nan
 
     # ACF features
     acfremainder = acf_features(remainder, m)

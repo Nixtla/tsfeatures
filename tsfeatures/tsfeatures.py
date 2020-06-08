@@ -6,20 +6,20 @@ warnings.warn = lambda *a, **kw: False
 
 import pandas as pd
 import numpy as np
-import statsmodels.api as sm
 import multiprocessing as mp
+import statsmodels.api as sm
 
+from itertools import groupby
 from collections import ChainMap
+from functools import partial
 from rstl import STL
+from arch import arch_model
+from supersmoother import supersmoother
+from sklearn.linear_model import LinearRegression
 from statsmodels.tsa.stattools import acf, pacf, kpss
 from statsmodels.tsa.ar_model import AR
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.api import Holt
-from sklearn.linear_model import LinearRegression
-from itertools import groupby
-from arch import arch_model
-from supersmoother import supersmoother
-from functools import partial
 
 from tsfeatures.utils import (
     poly, embed, scalets,
@@ -27,9 +27,23 @@ from tsfeatures.utils import (
     hurst_exponent, ur_pp
 )
 
+np.seterr(divide='ignore', invalid='ignore')
 
 def acf_features(x, freq=None):
-    ### Unpacking series
+    """Calculates autocorrelation function features.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     if freq is None:
         m = 1
     else:
@@ -80,8 +94,19 @@ def acf_features(x, freq=None):
     return output
 
 def pacf_features(x, freq=None):
-    """
-    Partial autocorrelation function features.
+    """Calculates partial autocorrelation function features.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
     """
     if freq is None:
         m = 1
@@ -137,6 +162,21 @@ def pacf_features(x, freq=None):
     return output
 
 def holt_parameters(x, freq=None):
+    """Fitted parameters of a Holt model.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+
     try :
         fit = Holt(x).fit()
         params = {
@@ -153,6 +193,21 @@ def holt_parameters(x, freq=None):
 
 
 def hw_parameters(x, freq=None):
+    """Fitted parameters of a Holt-Winters model.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+
     if freq is None:
         m = 1
     else:
@@ -172,11 +227,22 @@ def hw_parameters(x, freq=None):
         }
     return params
 
-# features
-
 def entropy(x, freq=None):
+    """Calculates sample entropy.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     try:
-        # Maybe 100 can change
         entropy = sample_entropy(x)
     except:
         entropy = np.nan
@@ -184,12 +250,40 @@ def entropy(x, freq=None):
     return {'entropy': entropy}
 
 def count_entropy(x, freq=None):
+    """Count entropy.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     entropy = x[x>0]*np.log(x[x>0])
     entropy = -entropy.sum()
 
     return {'entropy': entropy}
 
 def lumpiness(x, freq=None):
+    """lumpiness.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
 
     if (freq == 1) or (freq is None):
         width = 10
@@ -210,6 +304,20 @@ def lumpiness(x, freq=None):
     return {'lumpiness': lumpiness}
 
 def stability(x, freq=None):
+    """FStability.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     if freq == 1:
         width = 10
     else:
@@ -219,7 +327,6 @@ def stability(x, freq=None):
     lo = np.arange(0, nr, width)
     up = lo + width
     nsegs = nr / width
-    #print(np.arange(nsegs))
     meanx = [np.nanmean(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
 
     if len(x) < 2*width:
@@ -230,6 +337,20 @@ def stability(x, freq=None):
     return {'stability': stability}
 
 def crossing_points(x, freq=None):
+    """Crossing points.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     midline = np.median(x)
     ab = x <= midline
     lenx = len(x)
@@ -239,6 +360,20 @@ def crossing_points(x, freq=None):
     return {'crossing_points': cross.sum()}
 
 def flat_spots(x, freq=None):
+    """Flat spots.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     try:
         cutx = pd.cut(x, bins=10, include_lowest=True, labels=False) + 1
     except:
@@ -249,7 +384,20 @@ def flat_spots(x, freq=None):
     return {'flat_spots': rlex}
 
 def heterogeneity(x, freq=None):
+    """Heterogeneity.
 
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     if freq is None:
         m = 1
     else:
@@ -286,12 +434,38 @@ def heterogeneity(x, freq=None):
     return output
 
 def series_length(x, freq=None):
+    """Series length.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
 
     return {'series_length': len(x)}
 
-
-# Unit root test statistics
 def unitroot_kpss(x, freq=None):
+    """Unit root kpss.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     n = len(x)
     nlags = int(4 * (n / 100)**(1 / 4))
 
@@ -303,6 +477,20 @@ def unitroot_kpss(x, freq=None):
     return {'unitroot_kpss': test_kpss}
 
 def unitroot_pp(x, freq=None):
+    """Unit root pp.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     try:
         test_pp = ur_pp(x)
     except:
@@ -312,6 +500,20 @@ def unitroot_pp(x, freq=None):
 
 
 def nonlinearity(x, freq=None):
+    """Nonlinearity.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     try:
         test = terasvirta_test(x)
         test = 10*test/len(x)
@@ -320,18 +522,42 @@ def nonlinearity(x, freq=None):
 
     return {'nonlinearity': test}
 
-
 def frequency(x, freq=None):
+    """Frequency.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     if freq is None:
         m = 1
     else:
         m = freq
-    # Needs frequency of series
-    return {'frequency': m}#x.index.freq}
+
+    return {'frequency': m}
 
 def stl_features(x, freq=None):
-    """
-    Returns a DF where each column is an statistic.
+    """Calculates seasonal trend using loess features.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
     """
     if freq is None:
         m = 1
@@ -415,8 +641,6 @@ def stl_features(x, freq=None):
         trough = (np.argmin(seasonal)+1) % m
         trough = m if trough == 0 else trough
 
-
-
     # Compute measure of spikiness
     d = (remainder - np.nanmean(remainder))**2
     varloo = (vare*(n-1)-d)/(n-2)
@@ -429,7 +653,7 @@ def stl_features(x, freq=None):
     coefs = sm.OLS(trend0, time_x).fit().params
 
     linearity = coefs[1]
-    curvature = -coefs[2] #if m > 1 else coefs[2]
+    curvature = -coefs[2]
 
     # ACF features
     acfremainder = acf_features(remainder, m)
@@ -454,20 +678,59 @@ def stl_features(x, freq=None):
     return output
 
 def sparsity(x, freq=None):
+    """Sparsity.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     return {'sparsity': np.mean(x == 0)}
 
 def intervals(x, freq=None):
+    """Intervals with demand.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     x[x>0] = 1
 
     y = [sum(val) for keys, val in groupby(x, key=lambda k: k != 0) if keys != 0]
     y = np.array(y)
 
-    return {'intervals_mean': np.mean(y), 'intervals_sd':np.std(y, ddof=1)}
+    return {'intervals_mean': np.mean(y), 'intervals_sd': np.std(y, ddof=1)}
 
-#### Heterogeneity coefficients
-
-#ARCH LM statistic
 def arch_stat(x, freq=None, lags=12, demean=True):
+    """Arch model features.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
     if len(x) <= lags+1:
         return {'arch_lm': np.nan}
     if demean:
@@ -485,10 +748,21 @@ def arch_stat(x, freq=None, lags=12, demean=True):
 
     return {'arch_lm': r_squared}
 
-def series_length(x, freq=None):
-    return {'series_length': len(x)}
-
 def hurst(x, freq=None):
+    """Hurst index.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
 
     try:
         hurst_index = hurst_exponent(x)
@@ -498,13 +772,12 @@ def hurst(x, freq=None):
     return {'hurst': hurst_index}
 
 # Main functions
-def get_feats(index, ts, freq, scale=True,
+def _get_feats(index, ts, freq, scale=True,
               features = [acf_features, arch_stat, crossing_points,
                           entropy, flat_spots, heterogeneity, holt_parameters,
                           lumpiness, nonlinearity, pacf_features, stl_features,
                           stability, hw_parameters, unitroot_kpss, unitroot_pp,
                           series_length, hurst]):
-
 
     if isinstance(ts, pd.DataFrame):
         assert 'y' in ts.columns
@@ -529,24 +802,34 @@ def tsfeatures(
                         stability, hw_parameters, unitroot_kpss, unitroot_pp,
                         series_length, hurst],
             scale = True,
-            parallel = False,
             threads = None
     ):
-    """
+    """Calculates features for time series.
+
+    Parameters
+    ----------
     ts: pandas df
-            panel with columns unique_id, ds, y
+        Pandas DataFrame with columns ['unique_id', 'ds', 'y']
+    freq: int
+        Frequency of the time series.
+    features: iterable
+        Iterable of features functions.
+    scale: bool
+        Whether (mean-std)scale data.
+    threads: int
+        Number of threads to use. Use None (default) for parallel processing.
+
+    Returns
+    -------
+    pandas df
+        Pandas DataFrame where each column is a feature and each row
+        a time series.
     """
 
-    partial_get_feats = partial(get_feats, freq=freq, scale=scale, features=features)
-    # Init parallel
-    if parallel:
-        n_series = len(ts)
+    partial_get_feats = partial(_get_feats, freq=freq, scale=scale, features=features)
 
-        with mp.Pool(threads) as pool:
-            ts_features = pool.starmap(partial_get_feats, ts.groupby('unique_id'))
-    else:
-        ts_features = [partial_get_feats(idx, df) for idx, df in ts.groupby('unique_id')]
-
+    with mp.Pool(threads) as pool:
+        ts_features = pool.starmap(partial_get_feats, ts.groupby('unique_id'))
 
     feat_df = pd.concat(ts_features)
 

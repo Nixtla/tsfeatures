@@ -3,6 +3,7 @@
 
 import numpy as np
 import statsmodels.api as sm
+np.seterr(divide='ignore', invalid='ignore')
 
 ################################################################################
 ########### GENERAL UTILS ######################################################
@@ -28,7 +29,7 @@ def poly(x, p):
     References
     ----------
     https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/poly
-    """"
+    """
     x = np.array(x)
     X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
     return np.linalg.qr(X)[0][:,1:]
@@ -195,7 +196,9 @@ def hurst_exponent(sig):
     )
     r_t = np.array([np.ptp(y[:i+1] - t[:i+1] * mean_t[i]) for i in range(n)])
 
-    r_s = r_t / s_t
+    with np.errstate(invalid='ignore'):
+        r_s = r_t / s_t
+        
     r_s = np.log(r_s)[1:]
     n = np.log(t)[1:]
     a = np.column_stack((n, np.ones(n.size)))

@@ -9,16 +9,44 @@ import statsmodels.api as sm
 ################################################################################
 
 def scalets(x):
-    # Scaling time series
+    """Mean-std scale."""
     scaledx = (x - x.mean())/x.std(ddof=1)
     return scaledx
 
 def poly(x, p):
+    """Returns or evaluates orthogonal polynomials of degree 1 to degree over the
+       specified set of points x:
+       these are all orthogonal to the constant polynomial of degree 0.
+
+    Parameters
+    ----------
+    x: iterable
+        Numeric vector.
+    p: int
+        Degree of the polynomial.
+
+    References
+    ----------
+    https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/poly
+    """"
     x = np.array(x)
     X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
     return np.linalg.qr(X)[0][:,1:]
 
 def embed(x, p):
+    """Embeds the time series x into a low-dimensional Euclidean space.
+
+    Parameters
+    ----------
+    x: iterable
+        Numeric vector.
+    p: int
+        Embedding dimension.
+
+    References
+    ----------
+    https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/embed
+    """
     x = np.array(x)
     x = np.transpose(np.vstack(list((np.roll(x, k) for k in range(p)))))
     x = x[(p-1):]
@@ -30,8 +58,25 @@ def embed(x, p):
 ################################################################################
 
 def terasvirta_test(x, lag=1, scale=True):
-    """
-    x: array
+    """Generically computes Teraesvirta's neural network test for neglected
+       nonlinearity either for the time series x or the regression y~x.
+
+    Parameters
+    ----------
+    x: iterable
+        Numeric vector.
+    lag: int
+        Specifies the model order in terms of lags.
+    scale: bool
+        Whether the data should be scaled before computing the test.
+
+    Returns
+    -------
+    float: terasvirta statistic.
+
+    References
+    ----------
+    https://www.rdocumentation.org/packages/tseries/versions/0.10-47/topics/terasvirta.test
     """
 
     if scale: x = scalets(x)
@@ -77,15 +122,16 @@ def terasvirta_test(x, lag=1, scale=True):
     return stat
 
 def sample_entropy(x):
-    """
-    Calculate and return sample entropy of x.
-    .. rubric:: References
-    |  [1] http://en.wikipedia.org/wiki/Sample_Entropy
-    |  [2] https://www.ncbi.nlm.nih.gov/pubmed/10843903?dopt=Abstract
-    :param x: the time series to calculate the feature of
-    :type x: numpy.ndarray
-    :return: the value of this feature
-    :return type: float
+    """Calculate and return sample entropy of x.
+
+    Parameters
+    ----------
+    x: iterable
+        Numeric vector.
+
+    References
+    ----------
+    https://github.com/blue-yonder/tsfresh/blob/master/tsfresh/feature_extraction/feature_calculators.py
     """
     x = np.array(x)
 
@@ -125,8 +171,20 @@ def sample_entropy(x):
     return se[0]
 
 def hurst_exponent(sig):
-    #taken from https://gist.github.com/alexvorndran/aad69fa741e579aad093608ccaab4fe1
-    #based on https://codereview.stackexchange.com/questions/224360/hurst-exponent-calculator
+    """Computes hurst exponent.
+
+    Parameters
+    ----------
+    x: iterable
+        Numeric vector.
+
+    References
+    ----------
+    taken from https://gist.github.com/alexvorndran/aad69fa741e579aad093608ccaab4fe1
+    based on https://codereview.stackexchange.com/questions/224360/hurst-exponent-calculator
+    """
+
+    sig = np.array(sig)
     n = sig.size  # num timesteps
     t = np.arange(1, n+1)
     y = sig.cumsum()  # marginally more efficient than: np.cumsum(sig)
@@ -146,6 +204,17 @@ def hurst_exponent(sig):
     return hurst_exponent
 
 def ur_pp(x):
+    """Performs the Phillips \& Perron unit root test.
+
+    Parameters
+    ----------
+    x: iterable
+        Numeric vector.
+
+    References
+    ----------
+    https://www.rdocumentation.org/packages/urca/versions/1.3-0/topics/ur.pp
+    """
     n = len(x)
     lmax = 4 * (n / 100)**(1 / 4)
 
@@ -161,9 +230,9 @@ def ur_pp(x):
     model = sm.OLS(y, y_l1).fit()
     my_tstat, res = model.tvalues[0], model.resid
     s = 1 / (n * np.sum(res**2))
-    myybar = (1/n**2)*(((y-y.mean())**2).sum())
-    myy = (1/n**2)*((y**2).sum())
-    my = (n**(-3/2))*(y.sum())
+    myybar = (1 / n**2) * (((y-y.mean())**2).sum())
+    myy = (1 / n**2) * ((y**2).sum())
+    my = (n**(-3 / 2))*(y.sum())
 
     idx = np.arange(lmax)
     coprods = []

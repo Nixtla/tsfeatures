@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from math import isclose
-from tsfeatures import pacf_features
+from tsfeatures import acf_features
 from tsfeatures.utils import WWWusage, USAccDeaths
 
 def test_acf_features_seasonal():

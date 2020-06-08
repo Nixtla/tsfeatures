@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from math import isclose
-from tsfeatures import pacf_features
+from tsfeatures import arch_stat
 from tsfeatures.utils import WWWusage, USAccDeaths
 
 def test_arch_stat_seasonal():

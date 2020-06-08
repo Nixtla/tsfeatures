@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from math import isclose
-from tsfeatures import pacf_features
+from tsfeatures import holt_parameters
 from tsfeatures.utils import WWWusage, USAccDeaths
 
 def test_holt_parameters_seasonal():

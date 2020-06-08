@@ -1,9 +1,12 @@
-from tsfeatures import acf_features
-from tsfeatures.utils_ts import WWWusage, USAccDeaths
+#!/usr/bin/env python
+# coding: utf-8
+
 from math import isclose
+from tsfeatures import pacf_features
+from tsfeatures.utils import WWWusage, USAccDeaths
 
 def test_acf_features_seasonal():
-    z = acf_features((USAccDeaths, 12))
+    z = acf_features(USAccDeaths, 12)
     assert isclose(len(z), 7)
     assert isclose(z['x_acf1'], 0.70, abs_tol=0.01)
     assert isclose(z['x_acf10'], 1.20, abs_tol=0.01)
@@ -14,7 +17,7 @@ def test_acf_features_seasonal():
     assert isclose(z['seas_acf1'], 0.62, abs_tol=0.01)
 
 def test_acf_features_non_seasonal():
-    z = acf_features((WWWusage, 1))
+    z = acf_features(WWWusage, 1)
     assert isclose(len(z), 6)
     assert isclose(z['x_acf1'], 0.96, abs_tol=0.01)
     assert isclose(z['x_acf10'], 4.19, abs_tol=0.01)

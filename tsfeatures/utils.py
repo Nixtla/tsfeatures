@@ -198,7 +198,7 @@ def hurst_exponent(sig):
 
     with np.errstate(invalid='ignore'):
         r_s = r_t / s_t
-        
+
     r_s = np.log(r_s)[1:]
     n = np.log(t)[1:]
     a = np.column_stack((n, np.ones(n.size)))
@@ -257,6 +257,38 @@ def ur_pp(x):
 
     return test_stat
 
+def lambda_coef_var(lambda_par, x, period=2):
+    """
+    Parameters
+    ----------
+    lambda_par: float
+        Lambda Box-cox transformation parameter.
+        Must be greater than zero.
+    x: time series
+        Numpy array.
+    period: int
+        The length of each subseries (usually the length of seasonal period)
+    """
+
+    x = deepcopy(x)
+    x = np.array(x)
+    if len(np.unique(x)) == 1:
+
+        return 1
+
+    split_size = divmod(len(x)-1, period)
+    split_size, _ = split_size
+
+    x = np.array_split(x, split_size)
+
+    mu_h = np.array([np.nanmean(sub) for sub in x])
+    sig_h = np.array([np.nanstd(sub, ddof=1) for sub in x])
+
+    rat = sig_h / mu_h ** (1 - lambda_par)
+
+    value = np.nanstd(rat, ddof=1) / np.nanmean(rat)
+
+    return value
 
 ################################################################################
 ####### TS #####################################################################

@@ -771,6 +771,14 @@ def hurst(x, freq=None):
 
     return {'hurst': hurst_index}
 
+def guerrero(x, freq, lower=-1, upper=2):
+
+    func_to_min = lambda lambda_par: lambda_coef_var(lambda_par, x=x, period=freq)
+
+    min_ = minimize_scalar(func_to_min, bounds=[lower, upper])
+
+    return min_['fun']
+
 # Main functions
 def _get_feats(index, ts, freq, scale=True,
               features = [acf_features, arch_stat, crossing_points,

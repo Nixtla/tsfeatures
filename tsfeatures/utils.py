@@ -258,7 +258,8 @@ def ur_pp(x):
     return test_stat
 
 def lambda_coef_var(lambda_par, x, period=2):
-    """
+    """Calculates coefficient of variation for subseries of x.
+
     Parameters
     ----------
     lambda_par: float
@@ -267,13 +268,18 @@ def lambda_coef_var(lambda_par, x, period=2):
     x: time series
         Numpy array.
     period: int
-        The length of each subseries (usually the length of seasonal period)
+        The length of each subseries (usually the length of seasonal period).
+
+    Return
+    ------
+    float
+        Coefficient of variation.
     """
 
     x = deepcopy(x)
     x = np.array(x)
+    
     if len(np.unique(x)) == 1:
-
         return 1
 
     split_size = divmod(len(x)-1, period)

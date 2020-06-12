@@ -20,11 +20,13 @@ from statsmodels.tsa.stattools import acf, pacf, kpss
 from statsmodels.tsa.ar_model import AR
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.api import Holt
+from scipy.optimize import minimize_scalar
 
 from tsfeatures.utils import (
     poly, embed, scalets,
     terasvirta_test, sample_entropy,
-    hurst_exponent, ur_pp
+    hurst_exponent, ur_pp,
+    lambda_coef_var
 )
 
 np.seterr(divide='ignore', invalid='ignore')
@@ -176,7 +178,6 @@ def holt_parameters(x, freq=None):
     dict
         Dict with calculated features.
     """
-
     try :
         fit = Holt(x).fit()
         params = {
@@ -207,7 +208,6 @@ def hw_parameters(x, freq=None):
     dict
         Dict with calculated features.
     """
-
     if freq is None:
         m = 1
     else:
@@ -225,6 +225,7 @@ def hw_parameters(x, freq=None):
             'hw_beta': np.nan,
             'hw_gamma': np.nan
         }
+
     return params
 
 def entropy(x, freq=None):
@@ -284,7 +285,6 @@ def lumpiness(x, freq=None):
     dict
         Dict with calculated features.
     """
-
     if (freq == 1) or (freq is None):
         width = 10
     else:
@@ -304,7 +304,7 @@ def lumpiness(x, freq=None):
     return {'lumpiness': lumpiness}
 
 def stability(x, freq=None):
-    """FStability.
+    """Stability.
 
     Parameters
     ----------
@@ -357,6 +357,7 @@ def crossing_points(x, freq=None):
     p1 = ab[:(lenx-1)]
     p2 = ab[1:]
     cross = (p1 & (~p2)) | (p2 & (~p1))
+
     return {'crossing_points': cross.sum()}
 
 def flat_spots(x, freq=None):
@@ -692,6 +693,7 @@ def sparsity(x, freq=None):
     dict
         Dict with calculated features.
     """
+
     return {'sparsity': np.mean(x == 0)}
 
 def intervals(x, freq=None):
@@ -763,7 +765,6 @@ def hurst(x, freq=None):
     dict
         Dict with calculated features.
     """
-
     try:
         hurst_index = hurst_exponent(x)
     except:
@@ -772,12 +773,36 @@ def hurst(x, freq=None):
     return {'hurst': hurst_index}
 
 def guerrero(x, freq, lower=-1, upper=2):
+    """Applies Guerrero's (1993) method to select the lambda which minimises the
+    coefficient of variation for subseries of x.
 
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series.
+    lower: float
+        The lower bound for lambda.
+    upper: float
+        The upper bound for lambda.
+
+    Returns
+    -------
+    dict
+        Dict with calculated feature.
+
+    References
+    ----------
+        Guerrero, V.M. (1993) Time-series analysis supported by power transformations.
+        Journal of Forecasting, 12, 37–48.
+    """
     func_to_min = lambda lambda_par: lambda_coef_var(lambda_par, x=x, period=freq)
 
     min_ = minimize_scalar(func_to_min, bounds=[lower, upper])
+    min_ = min_['fun']
 
-    return min_['fun']
+    return {'guerrero': min_}
 
 # Main functions
 def _get_feats(index, ts, freq, scale=True,

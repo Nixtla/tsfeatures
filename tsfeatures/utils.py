@@ -32,6 +32,7 @@ def poly(x, p):
     """
     x = np.array(x)
     X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
+
     return np.linalg.qr(X)[0][:,1:]
 
 def embed(x, p):
@@ -79,7 +80,6 @@ def terasvirta_test(x, lag=1, scale=True):
     ----------
     https://www.rdocumentation.org/packages/tseries/versions/0.10-47/topics/terasvirta.test
     """
-
     if scale: x = scalets(x)
 
     size_x = len(x)
@@ -169,6 +169,7 @@ def sample_entropy(x):
     similarity_ratio = A / B
     se = -1 * np.log(similarity_ratio)
     se = np.reshape(se, -1)
+    
     return se[0]
 
 def hurst_exponent(sig):
@@ -275,20 +276,18 @@ def lambda_coef_var(lambda_par, x, period=2):
     float
         Coefficient of variation.
     """
-
-    x = deepcopy(x)
     x = np.array(x)
-    
+
     if len(np.unique(x)) == 1:
         return 1
 
     split_size = divmod(len(x)-1, period)
     split_size, _ = split_size
 
-    x = np.array_split(x, split_size)
+    split = np.array_split(x, split_size)
 
-    mu_h = np.array([np.nanmean(sub) for sub in x])
-    sig_h = np.array([np.nanstd(sub, ddof=1) for sub in x])
+    mu_h = np.array([np.nanmean(sub) for sub in split])
+    sig_h = np.array([np.nanstd(sub, ddof=1) for sub in split])
 
     rat = sig_h / mu_h ** (1 - lambda_par)
 

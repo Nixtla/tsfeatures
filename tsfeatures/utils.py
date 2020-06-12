@@ -169,7 +169,7 @@ def sample_entropy(x):
     similarity_ratio = A / B
     se = -1 * np.log(similarity_ratio)
     se = np.reshape(se, -1)
-    
+
     return se[0]
 
 def hurst_exponent(sig):
@@ -208,7 +208,7 @@ def hurst_exponent(sig):
     return hurst_exponent
 
 def ur_pp(x):
-    """Performs the Phillips \& Perron unit root test.
+    """Performs the Phillips and Perron unit root test.
 
     Parameters
     ----------

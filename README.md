@@ -6,23 +6,25 @@
 
 # tsfeatures
 
-This library replicates _[tsfeatures](https://github.com/robjhyndman/tsfeatures)_, R package.
+Calculates various features from time series data. Python implementation of the R package _[tsfeatures](https://github.com/robjhyndman/tsfeatures)_.
 
+# Installation
 
-# Install
+You can install the *released* version of `tsfeatures` from the [Python package index](pypi.org) with:
 
 ``` python
-pip install git+https://github.com/FedericoGarza/tsfeatures
+pip install tsfeatures
 ```
 
+# Usage
 
-# Use
+The `tsfeatures` main function calculates by default the features used by Hyndman et.al. in their implementation of the FFORMA model.
 
 ``` python
 from tsfeatures import tsfeatures
 ```
 
-This package receives a panel pandas df with columns `unique_id`, `ds`, `y`.
+This function receives a panel pandas df with columns `unique_id`, `ds`, `y` and the frequency of the data.
 
 <img src=https://raw.githubusercontent.com/FedericoGarza/tsfeatures/master/.github/images/y_train.png width="152">
 
@@ -30,14 +32,7 @@ This package receives a panel pandas df with columns `unique_id`, `ds`, `y`.
 tsfeatures(panel, freq=7)
 ```
 
-## Parallel!
-
-
-``` python
-tsfeatures(panel, freq=7, parallel=True)
-```
-
-## Sum of absolute differences versus the R implementation
+## Comparison with the R implementation
 
 | feature           | diff  |
 |:------------------|------:|

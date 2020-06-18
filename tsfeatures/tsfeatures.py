@@ -30,12 +30,7 @@ import multiprocessing as mp
 from sklearn.linear_model import LinearRegression
 from itertools import groupby
 from arch import arch_model
-from supersmoother import supersmoother
-from functools import partial
 
-from tsfeatures.utils_ts import poly, embed, scalets
-from tsfeatures.custom_tests import terasvirta_test, sample_entropy, \
-                                    hurst_exponent, ur_pp
 from tsfeatures.utils import (
     poly, embed, scalets,
     terasvirta_test, sample_entropy,

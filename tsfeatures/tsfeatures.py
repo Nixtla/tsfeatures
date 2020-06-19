@@ -9,10 +9,10 @@ import numpy as np
 import multiprocessing as mp
 import statsmodels.api as sm
 
+from typing import Dict
 from itertools import groupby
 from collections import ChainMap
 from functools import partial
-from rstl import STL
 from arch import arch_model
 from supersmoother import supersmoother
 from sklearn.linear_model import LinearRegression
@@ -20,18 +20,19 @@ from statsmodels.tsa.stattools import acf, pacf, kpss
 from statsmodels.tsa.ar_model import AR
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.api import Holt
+from statsmodels.tsa.seasonal import STL
 from scipy.optimize import minimize_scalar
 
 from tsfeatures.utils import (
     poly, embed, scalets,
-    terasvirta_test, sample_entropy,
+    terasvirta_test,
     hurst_exponent, ur_pp,
     lambda_coef_var
 )
 
 np.seterr(divide='ignore', invalid='ignore')
 
-def acf_features(x, freq=None):
+def acf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Calculates autocorrelation function features.
 
     Parameters
@@ -46,10 +47,7 @@ def acf_features(x, freq=None):
     dict
         Dict with calculated features.
     """
-    if freq is None:
-        m = 1
-    else:
-        m = freq
+    m = freq
     size_x = len(x)
 
     acfx = acf(x, nlags = max(m, 10), fft=False)
@@ -95,7 +93,7 @@ def acf_features(x, freq=None):
 
     return output
 
-def pacf_features(x, freq=None):
+def pacf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Calculates partial autocorrelation function features.
 
     Parameters
@@ -110,10 +108,7 @@ def pacf_features(x, freq=None):
     dict
         Dict with calculated features.
     """
-    if freq is None:
-        m = 1
-    else:
-        m = freq
+    m = freq
 
     nlags_ = max(m, 5)
 
@@ -163,7 +158,7 @@ def pacf_features(x, freq=None):
 
     return output
 
-def holt_parameters(x, freq=None):
+def holt_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Fitted parameters of a Holt model.
 
     Parameters
@@ -179,7 +174,7 @@ def holt_parameters(x, freq=None):
         Dict with calculated features.
     """
     try :
-        fit = Holt(x).fit()
+        fit = Holt(x).fit(use_brute=False)
         params = {
             'alpha': fit.params['smoothing_level'],
             'beta': fit.params['smoothing_slope']
@@ -193,7 +188,7 @@ def holt_parameters(x, freq=None):
     return params
 
 
-def hw_parameters(x, freq=None):
+def hw_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Fitted parameters of a Holt-Winters model.
 
     Parameters
@@ -208,12 +203,10 @@ def hw_parameters(x, freq=None):
     dict
         Dict with calculated features.
     """
-    if freq is None:
-        m = 1
-    else:
-        m = freq
+    m = freq
+
     try:
-        fit = ExponentialSmoothing(x, seasonal_periods=m, trend='add', seasonal='add').fit()
+        fit = ExponentialSmoothing(x, seasonal_periods=m, trend='add', seasonal='add').fit(use_brute=False)
         params = {
             'hw_alpha': fit.params['smoothing_level'],
             'hw_beta': fit.params['smoothing_slope'],
@@ -228,7 +221,7 @@ def hw_parameters(x, freq=None):
 
     return params
 
-def entropy(x, freq=None):
+def entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Calculates sample entropy.
 
     Parameters
@@ -244,13 +237,13 @@ def entropy(x, freq=None):
         Dict with calculated features.
     """
     try:
-        entropy = sample_entropy(x)
+        entropy = count_entropy(x)['entropy']
     except:
         entropy = np.nan
 
     return {'entropy': entropy}
 
-def count_entropy(x, freq=None):
+def count_entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Count entropy.
 
     Parameters
@@ -270,7 +263,7 @@ def count_entropy(x, freq=None):
 
     return {'entropy': entropy}
 
-def lumpiness(x, freq=None):
+def lumpiness(x: np.array, freq: int = 1) -> Dict[str, float]:
     """lumpiness.
 
     Parameters
@@ -285,7 +278,7 @@ def lumpiness(x, freq=None):
     dict
         Dict with calculated features.
     """
-    if (freq == 1) or (freq is None):
+    if freq == 1:
         width = 10
     else:
         width = freq
@@ -303,7 +296,7 @@ def lumpiness(x, freq=None):
 
     return {'lumpiness': lumpiness}
 
-def stability(x, freq=None):
+def stability(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Stability.
 
     Parameters
@@ -336,7 +329,7 @@ def stability(x, freq=None):
 
     return {'stability': stability}
 
-def crossing_points(x, freq=None):
+def crossing_points(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Crossing points.
 
     Parameters
@@ -360,7 +353,7 @@ def crossing_points(x, freq=None):
 
     return {'crossing_points': cross.sum()}
 
-def flat_spots(x, freq=None):
+def flat_spots(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Flat spots.
 
     Parameters
@@ -384,7 +377,7 @@ def flat_spots(x, freq=None):
 
     return {'flat_spots': rlex}
 
-def heterogeneity(x, freq=None):
+def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Heterogeneity.
 
     Parameters
@@ -399,10 +392,7 @@ def heterogeneity(x, freq=None):
     dict
         Dict with calculated features.
     """
-    if freq is None:
-        m = 1
-    else:
-        m = freq
+    m = freq
 
     size_x = len(x)
     order_ar = min(size_x-1, np.floor(10*np.log10(size_x))).astype(int) # Defaults for
@@ -434,7 +424,7 @@ def heterogeneity(x, freq=None):
 
     return output
 
-def series_length(x, freq=None):
+def series_length(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Series length.
 
     Parameters
@@ -452,7 +442,7 @@ def series_length(x, freq=None):
 
     return {'series_length': len(x)}
 
-def unitroot_kpss(x, freq=None):
+def unitroot_kpss(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Unit root kpss.
 
     Parameters
@@ -477,7 +467,7 @@ def unitroot_kpss(x, freq=None):
 
     return {'unitroot_kpss': test_kpss}
 
-def unitroot_pp(x, freq=None):
+def unitroot_pp(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Unit root pp.
 
     Parameters
@@ -500,7 +490,7 @@ def unitroot_pp(x, freq=None):
     return {'unitroot_pp': test_pp}
 
 
-def nonlinearity(x, freq=None):
+def nonlinearity(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Nonlinearity.
 
     Parameters
@@ -523,7 +513,7 @@ def nonlinearity(x, freq=None):
 
     return {'nonlinearity': test}
 
-def frequency(x, freq=None):
+def frequency(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Frequency.
 
     Parameters
@@ -538,14 +528,10 @@ def frequency(x, freq=None):
     dict
         Dict with calculated features.
     """
-    if freq is None:
-        m = 1
-    else:
-        m = freq
 
-    return {'frequency': m}
+    return {'frequency': freq}
 
-def stl_features(x, freq=None):
+def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Calculates seasonal trend using loess features.
 
     Parameters
@@ -560,15 +546,12 @@ def stl_features(x, freq=None):
     dict
         Dict with calculated features.
     """
-    if freq is None:
-        m = 1
-    else:
-        m = freq
+    m = freq
     nperiods = int(m > 1)
     # STL fits
     if m > 1:
         try:
-            stlfit = STL(np.array(x), m, 13)
+            stlfit = STL(x, m, 13).fit()
         except:
             output = {
                 'nperiods': nperiods,
@@ -584,10 +567,10 @@ def stl_features(x, freq=None):
             return output
 
         trend0 = stlfit.trend
-        remainder = stlfit.remainder
+        remainder = stlfit.resid
         seasonal = stlfit.seasonal
     else:
-        deseas = np.array(x)
+        deseas = x
         t = np.arange(len(x))+1
         try:
             trend0 = supersmoother(t, deseas)
@@ -678,7 +661,7 @@ def stl_features(x, freq=None):
 
     return output
 
-def sparsity(x, freq=None):
+def sparsity(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Sparsity.
 
     Parameters
@@ -696,7 +679,7 @@ def sparsity(x, freq=None):
 
     return {'sparsity': np.mean(x == 0)}
 
-def intervals(x, freq=None):
+def intervals(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Intervals with demand.
 
     Parameters
@@ -718,7 +701,8 @@ def intervals(x, freq=None):
 
     return {'intervals_mean': np.mean(y), 'intervals_sd': np.std(y, ddof=1)}
 
-def arch_stat(x, freq=None, lags=12, demean=True):
+def arch_stat(x: np.array, freq: int = 1,
+              lags: int = 12, demean: bool = True) -> Dict[str, float]:
     """Arch model features.
 
     Parameters
@@ -750,7 +734,7 @@ def arch_stat(x, freq=None, lags=12, demean=True):
 
     return {'arch_lm': r_squared}
 
-def hurst(x, freq=None):
+def hurst(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Hurst index.
 
     Parameters
@@ -772,7 +756,8 @@ def hurst(x, freq=None):
 
     return {'hurst': hurst_index}
 
-def guerrero(x, freq, lower=-1, upper=2):
+def guerrero(x: np.array, freq: int = 1,
+             lower: int = -1, upper: int = 2) -> Dict[str, float]:
     """Applies Guerrero's (1993) method to select the lambda which minimises the
     coefficient of variation for subseries of x.
 
@@ -805,8 +790,11 @@ def guerrero(x, freq, lower=-1, upper=2):
     return {'guerrero': min_}
 
 # Main functions
-def _get_feats(index, ts, freq, scale=True,
-              features = [acf_features, arch_stat, crossing_points,
+def _get_feats(index,
+               ts,
+               freq,
+               scale=True,
+               features = [acf_features, arch_stat, crossing_points,
                           entropy, flat_spots, heterogeneity, holt_parameters,
                           lumpiness, nonlinearity, pacf_features, stl_features,
                           stability, hw_parameters, unitroot_kpss, unitroot_pp,
@@ -826,17 +814,15 @@ def _get_feats(index, ts, freq, scale=True,
 
     return pd.DataFrame(dict(c_map), index = [index])
 
-def tsfeatures(
-            ts,
-            freq,
-            features = [acf_features, arch_stat, crossing_points,
-                        entropy, flat_spots, heterogeneity, holt_parameters,
-                        lumpiness, nonlinearity, pacf_features, stl_features,
-                        stability, hw_parameters, unitroot_kpss, unitroot_pp,
-                        series_length, hurst],
-            scale = True,
-            threads = None
-    ):
+def tsfeatures(ts,
+               freq,
+               features = [acf_features, arch_stat, crossing_points,
+                           entropy, flat_spots, heterogeneity, holt_parameters,
+                           lumpiness, nonlinearity, pacf_features, stl_features,
+                           stability, hw_parameters, unitroot_kpss, unitroot_pp,
+                           series_length, hurst],
+               scale = True,
+               threads = None):
     """Calculates features for time series.
 
     Parameters
@@ -864,6 +850,6 @@ def tsfeatures(
     with mp.Pool(threads) as pool:
         ts_features = pool.starmap(partial_get_feats, ts.groupby('unique_id'))
 
-    feat_df = pd.concat(ts_features)
+    feat_df = pd.concat(ts_features).rename_axis('unique_id')
 
     return feat_df

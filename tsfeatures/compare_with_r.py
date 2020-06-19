@@ -2,42 +2,43 @@
 # coding: utf-8
 
 import argparse
+import time
+import cProfile
+import pstats
+import sys
 
-from ESRNN.m4_data import prepare_m4_data
-from ESRNN.utils_evaluation import evaluate_prediction_owa
-from ESRNN import ESRNN
+from tsfeatures import tsfeatures
+from tsfeatures.tsfeatures_r import tsfeatures_r
+from tsfeatures.m4_data import prepare_m4_data
 
-from tsfeatures import *
-
-
-freqs = {'Hourly': 24, 'Daily': 1,
+FREQS = {'Hourly': 24, 'Daily': 1,
          'Monthly': 12, 'Quarterly': 4,
          'Weekly':1, 'Yearly': 1}
 
-feats_scaled_ts = [acf_features, arch_stat, crossing_points,
-                   entropy, flat_spots, heterogeneity, holt_parameters,
-                   lumpiness, nonlinearity, pacf_features,
-                   stability, hw_parameters, unitroot_kpss, unitroot_pp,
-                   series_length, hurst]
 
-feats_no_scaled_ts = [stl_features]
-
-
-def get_features_m4(dataset_name, directory, num_obs=1000000, parallel=True):
-    print('\n')
-    print(dataset_name)
+def compare_features_m4(dataset_name, directory, num_obs=1000000):
     _, y_train_df, _, _ = prepare_m4_data(dataset_name=dataset_name,
                                           directory = directory,
                                           num_obs=num_obs)
 
-    freq = freqs[dataset_name]
-    
-    feats = tsfeatures(y_train_df, freq=freq, parallel=parallel)
-    feats = feats.rename_axis('unique_id')
+    freq = FREQS[dataset_name]
 
-    feats.to_csv('{}/results/{}-features.csv'.format(directory, dataset_name))
+    print('Calculating python features...')
 
-    print('Features saved')
+    init = time.time()
+    py_feats = tsfeatures(y_train_df, freq=freq)
+
+    print('Total time: ', time.time() - init)
+
+    print('Calculating r features...')
+    init = time.time()
+    r_feats = tsfeatures_r(y_train_df, freq=freq)
+
+    print('Total time: ', time.time() - init)
+
+    diff = (py_feats - r_feats).abs().sum(0).sort_values()
+
+    return diff
 
 def main(args):
     if args.num_obs:
@@ -48,13 +49,14 @@ def main(args):
     if args.dataset_name:
         datasets = [args.dataset_name]
     else:
-        datasets = freqs.keys()
+        datasets = FREQS.keys()
 
     for dataset_name in datasets:
-        get_features_m4(dataset_name, args.results_directory, num_obs)
-
+        diff = compare_features_m4(dataset_name, args.results_directory, num_obs)
+        print(diff)
 
 if __name__=='__main__':
+
     parser = argparse.ArgumentParser(description='Get features for M4 data')
     parser.add_argument("--results_directory", required=True, type=str,
                         help="directory where M4 data will be downloaded")
@@ -64,4 +66,11 @@ if __name__=='__main__':
                         help="type of dataset to get features")
     args = parser.parse_args()
 
+    pr = cProfile.Profile()
+    pr.enable()
     main(args)
+
+    pr.disable()
+    stats = pstats.Stats(pr)
+    stats.sort_stats('time')
+    stats.print_stats(0)

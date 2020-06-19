@@ -3,18 +3,21 @@
 
 import numpy as np
 import statsmodels.api as sm
+
+from numba import njit
+
 np.seterr(divide='ignore', invalid='ignore')
 
 ################################################################################
 ########### GENERAL UTILS ######################################################
 ################################################################################
 
-def scalets(x):
+def scalets(x: np.array) -> float:
     """Mean-std scale."""
     scaledx = (x - x.mean())/x.std(ddof=1)
     return scaledx
 
-def poly(x, p):
+def poly(x: np.array, p: int) -> np.array:
     """Returns or evaluates orthogonal polynomials of degree 1 to degree over the
        specified set of points x:
        these are all orthogonal to the constant polynomial of degree 0.
@@ -30,12 +33,11 @@ def poly(x, p):
     ----------
     https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/poly
     """
-    x = np.array(x)
     X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
 
     return np.linalg.qr(X)[0][:,1:]
 
-def embed(x, p):
+def embed(x: np.array, p: int) -> np.array:
     """Embeds the time series x into a low-dimensional Euclidean space.
 
     Parameters
@@ -49,7 +51,6 @@ def embed(x, p):
     ----------
     https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/embed
     """
-    x = np.array(x)
     x = np.transpose(np.vstack(list((np.roll(x, k) for k in range(p)))))
     x = x[(p-1):]
 
@@ -59,7 +60,8 @@ def embed(x, p):
 ####### CUSTOM FUNCS ###########################################################
 ################################################################################
 
-def terasvirta_test(x, lag=1, scale=True):
+@njit
+def terasvirta_test(x: np.array, lag: int = 1, scale: bool = True) -> float:
     """Generically computes Teraesvirta's neural network test for neglected
        nonlinearity either for the time series x or the regression y~x.
 
@@ -122,57 +124,8 @@ def terasvirta_test(x, lag=1, scale=True):
 
     return stat
 
-def sample_entropy(x):
-    """Calculate and return sample entropy of x.
-
-    Parameters
-    ----------
-    x: iterable
-        Numeric vector.
-
-    References
-    ----------
-    https://github.com/blue-yonder/tsfresh/blob/master/tsfresh/feature_extraction/feature_calculators.py
-    """
-    x = np.array(x)
-
-    sample_length = 1  # number of sequential points of the time series
-    tolerance = 0.2 * np.std(x)  # 0.2 is a common value for r - why?
-
-    n = len(x)
-    prev = np.zeros(n)
-    curr = np.zeros(n)
-    A = np.zeros((1, 1))  # number of matches for m = [1,...,template_length - 1]
-    B = np.zeros((1, 1))  # number of matches for m = [1,...,template_length]
-
-    for i in range(n - 1):
-        nj = n - i - 1
-        ts1 = x[i]
-        for jj in range(nj):
-            j = jj + i + 1
-            if abs(x[j] - ts1) < tolerance:  # distance between two vectors
-                curr[jj] = prev[jj] + 1
-                temp_ts_length = min(sample_length, curr[jj])
-                for m in range(int(temp_ts_length)):
-                    A[m] += 1
-                    if j < n - 1:
-                        B[m] += 1
-            else:
-                curr[jj] = 0
-        for j in range(nj):
-            prev[j] = curr[j]
-
-    N = n * (n - 1) / 2
-    B = np.vstack(([N], B[0]))
-
-    # sample entropy = -1 * (log (A/B))
-    similarity_ratio = A / B
-    se = -1 * np.log(similarity_ratio)
-    se = np.reshape(se, -1)
-
-    return se[0]
-
-def hurst_exponent(sig):
+@njit
+def hurst_exponent(x: np.array) -> float:
     """Computes hurst exponent.
 
     Parameters
@@ -185,8 +138,6 @@ def hurst_exponent(sig):
     taken from https://gist.github.com/alexvorndran/aad69fa741e579aad093608ccaab4fe1
     based on https://codereview.stackexchange.com/questions/224360/hurst-exponent-calculator
     """
-
-    sig = np.array(sig)
     n = sig.size  # num timesteps
     t = np.arange(1, n+1)
     y = sig.cumsum()  # marginally more efficient than: np.cumsum(sig)
@@ -207,7 +158,8 @@ def hurst_exponent(sig):
 
     return hurst_exponent
 
-def ur_pp(x):
+@njit
+def ur_pp(x: np.array) -> float:
     """Performs the Phillips and Perron unit root test.
 
     Parameters
@@ -258,7 +210,7 @@ def ur_pp(x):
 
     return test_stat
 
-def lambda_coef_var(lambda_par, x, period=2):
+def lambda_coef_var(lambda_par: float, x: np.array, period: int = 2):
     """Calculates coefficient of variation for subseries of x.
 
     Parameters
@@ -276,8 +228,6 @@ def lambda_coef_var(lambda_par, x, period=2):
     float
         Coefficient of variation.
     """
-    x = np.array(x)
-
     if len(np.unique(x)) == 1:
         return 1
 

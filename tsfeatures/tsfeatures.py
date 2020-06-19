@@ -93,6 +93,389 @@ def acf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
 
     return output
 
+def arch_stat(x: np.array, freq: int = 1,
+              lags: int = 12, demean: bool = True) -> Dict[str, float]:
+    """Arch model features.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    if len(x) <= lags+1:
+        return {'arch_lm': np.nan}
+    if demean:
+        x -= np.mean(x)
+
+    size_x = len(x)
+    mat = embed(x**2, lags+1)
+    X = mat[:,1:]
+    y = np.vstack(mat[:, 0])
+
+    try:
+        r_squared = LinearRegression().fit(X, y).score(X, y)
+    except:
+        r_squared = np.nan
+
+    return {'arch_lm': r_squared}
+
+def count_entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Count entropy.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    entropy = x[x>0]*np.log(x[x>0])
+    entropy = -entropy.sum()
+
+    return {'entropy': entropy}
+
+def crossing_points(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Crossing points.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    midline = np.median(x)
+    ab = x <= midline
+    lenx = len(x)
+    p1 = ab[:(lenx-1)]
+    p2 = ab[1:]
+    cross = (p1 & (~p2)) | (p2 & (~p1))
+
+    return {'crossing_points': cross.sum()}
+
+def entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Calculates sample entropy.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    try:
+        entropy = count_entropy(x)['entropy']
+    except:
+        entropy = np.nan
+
+    return {'entropy': entropy}
+
+def flat_spots(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Flat spots.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    try:
+        cutx = pd.cut(x, bins=10, include_lowest=True, labels=False) + 1
+    except:
+        return {'flat_spots': np.nan}
+
+    rlex = np.array([sum(1 for i in g) for k,g in groupby(cutx)]).max()
+
+    return {'flat_spots': rlex}
+
+def frequency(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Frequency.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+
+    return {'frequency': freq}
+
+def guerrero(x: np.array, freq: int = 1,
+             lower: int = -1, upper: int = 2) -> Dict[str, float]:
+    """Applies Guerrero's (1993) method to select the lambda which minimises the
+    coefficient of variation for subseries of x.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series.
+    lower: float
+        The lower bound for lambda.
+    upper: float
+        The upper bound for lambda.
+
+    Returns
+    -------
+    dict
+        Dict with calculated feature.
+
+    References
+    ----------
+        Guerrero, V.M. (1993) Time-series analysis supported by power transformations.
+        Journal of Forecasting, 12, 37–48.
+    """
+    func_to_min = lambda lambda_par: lambda_coef_var(lambda_par, x=x, period=freq)
+
+    min_ = minimize_scalar(func_to_min, bounds=[lower, upper])
+    min_ = min_['fun']
+
+    return {'guerrero': min_}
+
+def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Heterogeneity.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    m = freq
+
+    size_x = len(x)
+    order_ar = min(size_x-1, np.floor(10*np.log10(size_x))).astype(int) # Defaults for
+    try:
+        x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='c').resid
+    except:
+        x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='nc').resid
+
+    # arch and box test
+    x_archtest = arch_stat(x_whitened, m)['arch_lm']
+    LBstat = (acf(x_whitened**2, nlags=12, fft=False)[1:]**2).sum()
+
+    #Fit garch model
+    garch_fit = arch_model(x_whitened, vol='GARCH', rescale=False).fit(disp='off')
+
+    # compare arch test before and after fitting garch
+    garch_fit_std = garch_fit.resid
+    x_garch_archtest = arch_stat(garch_fit_std, m)['arch_lm']
+
+    # compare Box test of squared residuals before and after fittig.garch
+    LBstat2 = (acf(garch_fit_std**2, nlags=12, fft=False)[1:]**2).sum()
+
+    output = {
+        'arch_acf': LBstat,
+        'garch_acf': LBstat2,
+        'arch_r2': x_archtest,
+        'garch_r2': x_garch_archtest
+    }
+
+    return output
+
+def holt_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Fitted parameters of a Holt model.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    try :
+        fit = Holt(x).fit(use_brute=False)
+        params = {
+            'alpha': fit.params['smoothing_level'],
+            'beta': fit.params['smoothing_slope']
+        }
+    except:
+        params = {
+            'alpha': np.nan,
+            'beta': np.nan
+        }
+
+    return params
+
+def hurst(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Hurst index.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    try:
+        hurst_index = hurst_exponent(x)
+    except:
+        hurst_index = np.nan
+
+    return {'hurst': hurst_index}
+
+def hw_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Fitted parameters of a Holt-Winters model.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    m = freq
+
+    try:
+        fit = ExponentialSmoothing(x, seasonal_periods=m, trend='add', seasonal='add').fit(use_brute=False)
+        params = {
+            'hw_alpha': fit.params['smoothing_level'],
+            'hw_beta': fit.params['smoothing_slope'],
+            'hw_gamma': fit.params['smoothing_seasonal']
+        }
+    except:
+        params = {
+            'hw_alpha': np.nan,
+            'hw_beta': np.nan,
+            'hw_gamma': np.nan
+        }
+
+    return params
+
+def intervals(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Intervals with demand.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    x[x>0] = 1
+
+    y = [sum(val) for keys, val in groupby(x, key=lambda k: k != 0) if keys != 0]
+    y = np.array(y)
+
+    return {'intervals_mean': np.mean(y), 'intervals_sd': np.std(y, ddof=1)}
+
+def lumpiness(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """lumpiness.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    if freq == 1:
+        width = 10
+    else:
+        width = freq
+
+    nr = len(x)
+    lo = np.arange(0, nr, width)
+    up = lo + width
+    nsegs = nr / width
+    varx = [np.nanvar(x[lo[idx]:up[idx]], ddof=1) for idx in np.arange(int(nsegs))]
+
+    if len(x) < 2*width:
+        lumpiness = 0
+    else:
+        lumpiness = np.nanvar(varx, ddof=1)
+
+    return {'lumpiness': lumpiness}
+
+def nonlinearity(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Nonlinearity.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        Dict with calculated features.
+    """
+    try:
+        test = terasvirta_test(x)
+        test = 10*test/len(x)
+    except:
+        test = np.nan
+
+    return {'nonlinearity': test}
+
 def pacf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Calculates partial autocorrelation function features.
 
@@ -158,8 +541,8 @@ def pacf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
 
     return output
 
-def holt_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Fitted parameters of a Holt model.
+def series_length(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Series length.
 
     Parameters
     ----------
@@ -173,23 +556,11 @@ def holt_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
     dict
         Dict with calculated features.
     """
-    try :
-        fit = Holt(x).fit(use_brute=False)
-        params = {
-            'alpha': fit.params['smoothing_level'],
-            'beta': fit.params['smoothing_slope']
-        }
-    except:
-        params = {
-            'alpha': np.nan,
-            'beta': np.nan
-        }
 
-    return params
+    return {'series_length': len(x)}
 
-
-def hw_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Fitted parameters of a Holt-Winters model.
+def sparsity(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Sparsity.
 
     Parameters
     ----------
@@ -203,98 +574,8 @@ def hw_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
     dict
         Dict with calculated features.
     """
-    m = freq
 
-    try:
-        fit = ExponentialSmoothing(x, seasonal_periods=m, trend='add', seasonal='add').fit(use_brute=False)
-        params = {
-            'hw_alpha': fit.params['smoothing_level'],
-            'hw_beta': fit.params['smoothing_slope'],
-            'hw_gamma': fit.params['smoothing_seasonal']
-        }
-    except:
-        params = {
-            'hw_alpha': np.nan,
-            'hw_beta': np.nan,
-            'hw_gamma': np.nan
-        }
-
-    return params
-
-def entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Calculates sample entropy.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    try:
-        entropy = count_entropy(x)['entropy']
-    except:
-        entropy = np.nan
-
-    return {'entropy': entropy}
-
-def count_entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Count entropy.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    entropy = x[x>0]*np.log(x[x>0])
-    entropy = -entropy.sum()
-
-    return {'entropy': entropy}
-
-def lumpiness(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """lumpiness.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    if freq == 1:
-        width = 10
-    else:
-        width = freq
-
-    nr = len(x)
-    lo = np.arange(0, nr, width)
-    up = lo + width
-    nsegs = nr / width
-    varx = [np.nanvar(x[lo[idx]:up[idx]], ddof=1) for idx in np.arange(int(nsegs))]
-
-    if len(x) < 2*width:
-        lumpiness = 0
-    else:
-        lumpiness = np.nanvar(varx, ddof=1)
-
-    return {'lumpiness': lumpiness}
+    return {'sparsity': np.mean(x == 0)}
 
 def stability(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Stability.
@@ -328,208 +609,6 @@ def stability(x: np.array, freq: int = 1) -> Dict[str, float]:
         stability = np.nanvar(meanx, ddof=1)
 
     return {'stability': stability}
-
-def crossing_points(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Crossing points.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    midline = np.median(x)
-    ab = x <= midline
-    lenx = len(x)
-    p1 = ab[:(lenx-1)]
-    p2 = ab[1:]
-    cross = (p1 & (~p2)) | (p2 & (~p1))
-
-    return {'crossing_points': cross.sum()}
-
-def flat_spots(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Flat spots.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    try:
-        cutx = pd.cut(x, bins=10, include_lowest=True, labels=False) + 1
-    except:
-        return {'flat_spots': np.nan}
-
-    rlex = np.array([sum(1 for i in g) for k,g in groupby(cutx)]).max()
-
-    return {'flat_spots': rlex}
-
-def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Heterogeneity.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    m = freq
-
-    size_x = len(x)
-    order_ar = min(size_x-1, np.floor(10*np.log10(size_x))).astype(int) # Defaults for
-    try:
-        x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='c').resid
-    except:
-        x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='nc').resid
-
-    # arch and box test
-    x_archtest = arch_stat(x_whitened, m)['arch_lm']
-    LBstat = (acf(x_whitened**2, nlags=12, fft=False)[1:]**2).sum()
-
-    #Fit garch model
-    garch_fit = arch_model(x_whitened, vol='GARCH', rescale=False).fit(disp='off')
-
-    # compare arch test before and after fitting garch
-    garch_fit_std = garch_fit.resid
-    x_garch_archtest = arch_stat(garch_fit_std, m)['arch_lm']
-
-    # compare Box test of squared residuals before and after fittig.garch
-    LBstat2 = (acf(garch_fit_std**2, nlags=12, fft=False)[1:]**2).sum()
-
-    output = {
-        'arch_acf': LBstat,
-        'garch_acf': LBstat2,
-        'arch_r2': x_archtest,
-        'garch_r2': x_garch_archtest
-    }
-
-    return output
-
-def series_length(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Series length.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-
-    return {'series_length': len(x)}
-
-def unitroot_kpss(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Unit root kpss.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    n = len(x)
-    nlags = int(4 * (n / 100)**(1 / 4))
-
-    try:
-        test_kpss, _, _, _ = kpss(x, nlags=nlags)
-    except:
-        test_kpss = np.nan
-
-    return {'unitroot_kpss': test_kpss}
-
-def unitroot_pp(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Unit root pp.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    try:
-        test_pp = ur_pp(x)
-    except:
-        test_pp = np.nan
-
-    return {'unitroot_pp': test_pp}
-
-
-def nonlinearity(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Nonlinearity.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    try:
-        test = terasvirta_test(x)
-        test = 10*test/len(x)
-    except:
-        test = np.nan
-
-    return {'nonlinearity': test}
-
-def frequency(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Frequency.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-
-    return {'frequency': freq}
 
 def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Calculates seasonal trend using loess features.
@@ -661,8 +740,8 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
 
     return output
 
-def sparsity(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Sparsity.
+def unitroot_kpss(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Unit root kpss.
 
     Parameters
     ----------
@@ -676,66 +755,18 @@ def sparsity(x: np.array, freq: int = 1) -> Dict[str, float]:
     dict
         Dict with calculated features.
     """
-
-    return {'sparsity': np.mean(x == 0)}
-
-def intervals(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Intervals with demand.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    x[x>0] = 1
-
-    y = [sum(val) for keys, val in groupby(x, key=lambda k: k != 0) if keys != 0]
-    y = np.array(y)
-
-    return {'intervals_mean': np.mean(y), 'intervals_sd': np.std(y, ddof=1)}
-
-def arch_stat(x: np.array, freq: int = 1,
-              lags: int = 12, demean: bool = True) -> Dict[str, float]:
-    """Arch model features.
-
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series
-
-    Returns
-    -------
-    dict
-        Dict with calculated features.
-    """
-    if len(x) <= lags+1:
-        return {'arch_lm': np.nan}
-    if demean:
-        x -= np.mean(x)
-
-    size_x = len(x)
-    mat = embed(x**2, lags+1)
-    X = mat[:,1:]
-    y = np.vstack(mat[:, 0])
+    n = len(x)
+    nlags = int(4 * (n / 100)**(1 / 4))
 
     try:
-        r_squared = LinearRegression().fit(X, y).score(X, y)
+        test_kpss, _, _, _ = kpss(x, nlags=nlags)
     except:
-        r_squared = np.nan
+        test_kpss = np.nan
 
-    return {'arch_lm': r_squared}
+    return {'unitroot_kpss': test_kpss}
 
-def hurst(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Hurst index.
+def unitroot_pp(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Unit root pp.
 
     Parameters
     ----------
@@ -750,46 +781,16 @@ def hurst(x: np.array, freq: int = 1) -> Dict[str, float]:
         Dict with calculated features.
     """
     try:
-        hurst_index = hurst_exponent(x)
+        test_pp = ur_pp(x)
     except:
-        hurst_index = np.nan
+        test_pp = np.nan
 
-    return {'hurst': hurst_index}
+    return {'unitroot_pp': test_pp}
 
-def guerrero(x: np.array, freq: int = 1,
-             lower: int = -1, upper: int = 2) -> Dict[str, float]:
-    """Applies Guerrero's (1993) method to select the lambda which minimises the
-    coefficient of variation for subseries of x.
+###############################################################################
+#### MAIN FUNCTIONS
+###############################################################################
 
-    Parameters
-    ----------
-    x: numpy array
-        The time series.
-    freq: int
-        Frequency of the time series.
-    lower: float
-        The lower bound for lambda.
-    upper: float
-        The upper bound for lambda.
-
-    Returns
-    -------
-    dict
-        Dict with calculated feature.
-
-    References
-    ----------
-        Guerrero, V.M. (1993) Time-series analysis supported by power transformations.
-        Journal of Forecasting, 12, 37–48.
-    """
-    func_to_min = lambda lambda_par: lambda_coef_var(lambda_par, x=x, period=freq)
-
-    min_ = minimize_scalar(func_to_min, bounds=[lower, upper])
-    min_ = min_['fun']
-
-    return {'guerrero': min_}
-
-# Main functions
 def _get_feats(index,
                ts,
                freq,

@@ -138,13 +138,13 @@ def hurst_exponent(x: np.array) -> float:
     taken from https://gist.github.com/alexvorndran/aad69fa741e579aad093608ccaab4fe1
     based on https://codereview.stackexchange.com/questions/224360/hurst-exponent-calculator
     """
-    n = sig.size  # num timesteps
+    n = x.size  # num timesteps
     t = np.arange(1, n+1)
-    y = sig.cumsum()  # marginally more efficient than: np.cumsum(sig)
+    y = x.cumsum()  # marginally more efficient than: np.cumsum(sig)
     mean_t = y / t  # running mean
 
     s_t = np.sqrt(
-        np.array([np.mean((sig[:i+1] - mean_t[i])**2) for i in range(n)])
+        np.array([np.mean((x[:i+1] - mean_t[i])**2) for i in range(n)])
     )
     r_t = np.array([np.ptp(y[:i+1] - t[:i+1] * mean_t[i]) for i in range(n)])
 

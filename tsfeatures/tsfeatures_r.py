@@ -7,16 +7,24 @@ try:
 except ImportError:
     raise ImportError('rpy2 package not found, please install it.')
 
-def tsfeatures_r(ts, freq):
+def tsfeatures_r(ts, freq, **kwargs):
     """tsfeatures wrapper using r.
 
+    Parameters
+    ----------
     ts: pandas df
         Pandas DataFrame with columns ['unique_id', 'ds', 'y']
     freq: int
         Frequency of the time series.
+    **kwargs:
+        Arguments passed to the original tsfeatures function.
+
+    References
+    ----------
+    https://pkg.robjhyndman.com/tsfeatures/reference/tsfeatures.html
     """
     rstring = """
-        function(df, freq){#, output_file){
+        function(df, freq, ...){
           suppressMessages(library(data.table))
           suppressMessages(library(tsfeatures))
 
@@ -59,7 +67,7 @@ def tsfeatures_r(ts, freq):
     pandas2ri.activate()
     rfunc = robjects.r(rstring)
 
-    feats = rfunc(ts, freq)
+    feats = rfunc(ts, freq, **kwargs)
 
     feats = feats.set_index('unique_id')
 

@@ -32,6 +32,20 @@ This function receives a panel pandas df with columns `unique_id`, `ds`, `y` and
 tsfeatures(panel, freq=7)
 ```
 
+## List of features
+
+| Features |||
+|:--------|:------|:-------------|
+|acf_features|heterogeneity|series_length|
+|arch_stat|holt_parameters|sparsity|
+|count_entropy|hurst|stability|
+|crossing_points|hw_parameters|stl_features|
+|entropy|intervals|unitroot_kpss|
+|flat_spots|lumpiness|unitroot_pp|
+|frequency|nonlinearity||
+|guerrero|pacf_features||
+
+
 ## Comparison with the R implementation
 
 | feature           | diff  |

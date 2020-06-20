@@ -4,8 +4,6 @@
 import numpy as np
 import statsmodels.api as sm
 
-from numba import njit
-
 np.seterr(divide='ignore', invalid='ignore')
 
 ################################################################################
@@ -60,7 +58,6 @@ def embed(x: np.array, p: int) -> np.array:
 ####### CUSTOM FUNCS ###########################################################
 ################################################################################
 
-@njit
 def terasvirta_test(x: np.array, lag: int = 1, scale: bool = True) -> float:
     """Generically computes Teraesvirta's neural network test for neglected
        nonlinearity either for the time series x or the regression y~x.
@@ -124,7 +121,6 @@ def terasvirta_test(x: np.array, lag: int = 1, scale: bool = True) -> float:
 
     return stat
 
-@njit
 def hurst_exponent(x: np.array) -> float:
     """Computes hurst exponent.
 
@@ -158,7 +154,6 @@ def hurst_exponent(x: np.array) -> float:
 
     return hurst_exponent
 
-@njit
 def ur_pp(x: np.array) -> float:
     """Performs the Phillips and Perron unit root test.
 

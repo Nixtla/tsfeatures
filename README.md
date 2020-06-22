@@ -51,45 +51,18 @@ tsfeatures(panel, freq=7)
 
 ### Non-seasonal data (100 Daily M4 time series)
 
-| feature         |   diff |
-|:----------------|-------:|
-| e_acf10         |   0    |
-| seasonal_period |   0    |
-| nperiods        |   0    |
-| linearity       |   0    |
-| hw_gamma        |   0    |
-| hw_beta         |   0    |
-| hw_alpha        |   0    |
-| trend           |   0    |
-| flat_spots      |   0    |
-| series_length   |   0    |
-| e_acf1          |   0    |
-| spike           |   0    |
-| curvature       |   0    |
-| crossing_points |   0    |
-| lumpiness       |   0    |
-| diff1x_pacf5    |   0    |
-| diff1_acf10     |   0    |
-| arch_lm         |   0    |
-| diff1_acf1      |   0    |
-| stability       |   0    |
-| diff2_acf1      |   0    |
-| diff2_acf10     |   0    |
-| x_acf1          |   0    |
-| nonlinearity    |   0    |
-| diff2x_pacf5    |   0    |
-| unitroot_kpss   |   0    |
-| x_pacf5         |   0    |
-| x_acf10         |   0    |
-| unitroot_pp     |   0    |
-| arch_r2         |   1.37 |
-| alpha           |   3.2  |
-| arch_acf        |   3.3  |
-| beta            |   4.04 |
-| garch_r2        |   4.74 |
-| hurst           |   5.45 |
-| garch_acf       |   5.53 |
-| entropy         |  11.65 |
+| feature         |   diff | feature         |   diff | feature         |   diff | feature         |   diff |
+|:----------------|-------:|:----------------|-------:|:----------------|-------:|:----------------|-------:|
+| e_acf10         |   0    | e_acf1         |   0    | diff2_acf1         |   0    | alpha         |   3.2    |
+| seasonal_period |   0    | spike         |   0    | diff1_acf10         |   0    | arch_acf         |   3.3    |
+| nperiods        |   0    | curvature         |   0    | x_acf1         |   0    | beta         |   4.04    |
+| linearity       |   0    | crossing_points         |   0    | nonlinearity         |   0    | garch_r2         |   4.74    |
+| hw_gamma        |   0    | lumpiness         |   0    | diff2x_pacf5         |   0    | hurst         |   5.45    |
+| hw_beta         |   0    | diff1x_pacf5         |   0    | unitroot_kpss         |   0    | garch_acf         |   5.53    |
+| hw_alpha        |   0    | diff1_acf10         |   0    | x_pacf5         |   0    | entropy         |   11.65    |
+| trend           |   0    | arch_lm         |   0    | x_acf10         |   0    |
+| flat_spots      |   0    | diff1_acf1         |   0    | unitroot_pp         |   0    |
+| series_length   |   0    | stability         |   0    | arch_r2         |   1.37    |
 
 To replicate this results use:
 

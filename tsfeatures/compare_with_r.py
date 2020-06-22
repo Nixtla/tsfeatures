@@ -2,18 +2,12 @@
 # coding: utf-8
 
 import argparse
-import time
-import cProfile
-import pstats
 import sys
+import time
 
-from tsfeatures import tsfeatures
+from tsfeatures import tsfeatures, heterogeneity
 from tsfeatures.tsfeatures_r import tsfeatures_r
 from tsfeatures.m4_data import prepare_m4_data
-
-FREQS = {'Hourly': 24, 'Daily': 1,
-         'Monthly': 12, 'Quarterly': 4,
-         'Weekly':1, 'Yearly': 1}
 
 
 def compare_features_m4(dataset_name, directory, num_obs=1000000):
@@ -24,19 +18,16 @@ def compare_features_m4(dataset_name, directory, num_obs=1000000):
     freq = FREQS[dataset_name]
 
     print('Calculating python features...')
-
     init = time.time()
     py_feats = tsfeatures(y_train_df, freq=freq)
-
     print('Total time: ', time.time() - init)
 
     print('Calculating r features...')
     init = time.time()
-    r_feats = tsfeatures_r(y_train_df, freq=freq)
-
+    r_feats = tsfeatures_r(y_train_df, freq=freq, parallel=True)
     print('Total time: ', time.time() - init)
 
-    diff = (py_feats - r_feats).abs().sum(0).sort_values()
+    diff = py_feats.sub(r_feats, 1).abs().sum(0).sort_values()
 
     return diff
 
@@ -53,24 +44,27 @@ def main(args):
 
     for dataset_name in datasets:
         diff = compare_features_m4(dataset_name, args.results_directory, num_obs)
-        print(diff)
+        diff.name = 'diff'
+        diff = diff.rename_axis('feature')
+        diff = diff.reset_index()
+        diff['diff'] = diff['diff'].map('{:.2f}'.format)
+        save_dir = args.results_directory + '/' + dataset_name + '_comparison_'
+        save_dir += str(num_obs) + '.csv'
+        diff.to_csv(save_dir, index=False)
+
+        print('Comparison saved at: ', save_dir)
 
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser(description='Get features for M4 data')
+
     parser.add_argument("--results_directory", required=True, type=str,
                         help="directory where M4 data will be downloaded")
     parser.add_argument("--num_obs", required=False, type=int,
                         help="number of M4 time series to be tested (uses all data by default)")
     parser.add_argument("--dataset_name", required=False, type=str,
                         help="type of dataset to get features")
+
     args = parser.parse_args()
 
-    pr = cProfile.Profile()
-    pr.enable()
     main(args)
-
-    pr.disable()
-    stats = pstats.Stats(pr)
-    stats.sort_stats('time')
-    stats.print_stats(0)

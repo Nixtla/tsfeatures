@@ -32,7 +32,8 @@ from tsfeatures.utils import (
     poly, embed, scalets,
     terasvirta_test,
     hurst_exponent, ur_pp,
-    lambda_coef_var
+    lambda_coef_var,
+    FREQS
 )
 
 
@@ -49,7 +50,17 @@ def acf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'x_acf1': First autocorrelation coefficient.
+        'x_acf10': Sum of squares of first 10 autocorrelation coefficients.
+        'diff1_acf1': First autocorrelation ciefficient of differenced series.
+        'diff1_acf10': Sum of squared of first 10 autocorrelation coefficients
+                       of differenced series.
+        'diff2_acf1': First autocorrelation coefficient of twice-differenced series.
+        'diff2_acf10': Sum of squared of first 10 autocorrelation coefficients of
+                       twice-differenced series.
+
+        Only for seasonal data (freq > 1).
+        'seas_acf1': Autocorrelation coefficient at the first seasonal lag.
     """
     m = freq
     size_x = len(x)
@@ -105,7 +116,7 @@ def arch_stat(x: np.array, freq: int = 1,
     Returns
     -------
     dict
-        Dict with calculated features.
+        'arch_lm': R^2 value of an autoregressive model of order lags applied to x**2.
     """
     if len(x) <= lags + 1:
         return {'arch_lm': np.nan}
@@ -137,12 +148,12 @@ def count_entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'count_entropy': Entropy using only positive data.
     """
     entropy = x[x > 0] * np.log(x[x > 0])
     entropy = -entropy.sum()
 
-    return {'entropy': entropy}
+    return {'count_entropy': entropy}
 
 def crossing_points(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Crossing points.
@@ -157,7 +168,7 @@ def crossing_points(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'crossing_points': Number of times that x crosses the median.
     """
     midline = np.median(x)
     ab = x <= midline
@@ -181,7 +192,11 @@ def entropy(x: np.array, freq: int = 1, base: float = e) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'entropy': Wrapper of the function spectral_entropy.
+
+    References
+    ----------
+    [1] https://raphaelvallat.com/entropy/build/html/index.html
     """
     try:
         entropy = spectral_entropy(x, 1, normalize=True)
@@ -203,7 +218,7 @@ def flat_spots(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'flat_spots': Number of flat spots in x.
     """
     try:
         cutx = pd.cut(x, bins=10, include_lowest=True, labels=False) + 1
@@ -227,7 +242,7 @@ def frequency(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'frequency': Wrapper of freq.
     """
 
     return {'frequency': freq}
@@ -251,11 +266,11 @@ def guerrero(x: np.array, freq: int = 1,
     Returns
     -------
     dict
-        Dict with calculated feature.
+        'guerrero': Minimum coefficient of variation for subseries of x.
 
     References
     ----------
-        Guerrero, V.M. (1993) Time-series analysis supported by power transformations.
+    [1] Guerrero, V.M. (1993) Time-series analysis supported by power transformations.
         Journal of Forecasting, 12, 37–48.
     """
     func_to_min = lambda lambda_par: lambda_coef_var(lambda_par, x=x, period=freq)
@@ -278,7 +293,14 @@ def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'arch_acf': Sum of squares of the first 12 autocorrelations of the
+                    residuals of the AR model applied to x
+        'garch_acf': Sum of squares of the first 12 autocorrelations of the
+                    residuals of the GARCH model applied to x
+        'arch_r2': Function arch_stat applied to the residuals of the
+                   AR model applied to x.
+        'garch_r2': Function arch_stat applied to the residuals of the GARCH
+                    model applied to x.
     """
     m = freq
 
@@ -322,7 +344,8 @@ def holt_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'alpha': Level paramater of the Holt model.
+        'beta': Trend parameter of the Hold model.
     """
     try :
         fit = ExponentialSmoothing(x, trend='add', seasonal=None).fit()
@@ -351,7 +374,7 @@ def hurst(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'hurst': Hurst exponent.
     """
     try:
         hurst_index = hurst_exponent(x)
@@ -373,7 +396,9 @@ def hw_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'hw_alpha': Level parameter of the HW model.
+        'hw_beta': Trend parameter of the HW model.
+        'hw_gamma': Seasonal parameter of the HW model.
     """
     try:
         fit = ExponentialSmoothing(x, seasonal_periods=freq, trend='add', seasonal='add').fit()
@@ -404,9 +429,10 @@ def intervals(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'intervals_mean': Mean of intervals with positive values.
+        'intervals_sd': SD of intervals with positive values.
     """
-    x[x>0] = 1
+    x[x > 0] = 1
 
     y = [sum(val) for keys, val in groupby(x, key=lambda k: k != 0) if keys != 0]
     y = np.array(y)
@@ -426,7 +452,7 @@ def lumpiness(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'lumpiness': Variance of the variances of tiled windows.
     """
     if freq == 1:
         width = 10
@@ -459,7 +485,8 @@ def nonlinearity(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'nonlinearity': 10 t**2/len(x) where t is the statistic used in
+                        Terasvirta's test.
     """
     try:
         test = terasvirta_test(x)
@@ -482,7 +509,16 @@ def pacf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'x_pacf5':  Sum of squares of the first 5 partial autocorrelation
+                    coefficients.
+        'diff1x_pacf5': Sum of squares of the first 5 partial autocorrelation
+                        coefficients of differenced series.
+        'diff2x_pacf5': Sum of squares of the first 5 partial autocorrelation
+                        coefficients of twice-differenced series.
+
+        Only for seasonal data (freq > 1).
+        'seas_pacf': Partial autocorrelation
+                     coefficient at the first seasonal lag.
     """
     m = freq
 
@@ -543,7 +579,7 @@ def series_length(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'series_length': Wrapper of len(x).
     """
 
     return {'series_length': len(x)}
@@ -561,7 +597,7 @@ def sparsity(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'sparsity': Average obs with zero values.
     """
 
     return {'sparsity': np.mean(x == 0)}
@@ -579,7 +615,7 @@ def stability(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'stability': Variance of the means of tiled windows.
     """
     if freq == 1:
         width = 10
@@ -600,7 +636,7 @@ def stability(x: np.array, freq: int = 1) -> Dict[str, float]:
     return {'stability': stability}
 
 def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
-    """Calculates seasonal trend using loess features.
+    """Calculates seasonal trend using loess decomposition.
 
     Parameters
     ----------
@@ -612,7 +648,21 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'nperiods': Number of seasonal periods in x.
+        'seasonal_period': Frequency of the time series.
+        'trend': Strength of trend.
+        'spike': Measures "spikiness" of x.
+        'linearity': Linearity of x based on the coefficients of an
+                     orthogonal quadratic regression.
+        'curvature': Curvature of x based on the coefficients of an
+                     orthogonal quadratic regression.
+        'e_acf1': acfremainder['x_acf1']
+        'e_acf10': acfremainder['x_acf10']
+
+        Only for sesonal data (freq > 0).
+        'seasonal_strength': Strength of seasonality.
+        'peak': Strength of peaks.
+        'trough': Strength of trough.
     """
     m = freq
     nperiods = int(m > 1)
@@ -629,7 +679,10 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
                 'linearity': np.nan,
                 'curvature': np.nan,
                 'e_acf1': np.nan,
-                'e_acf10': np.nan
+                'e_acf10': np.nan,
+                'seasonal_strength': np.nan,
+                'peak': np.nan,
+                'trough': np.nan
             }
 
             return output
@@ -740,7 +793,7 @@ def unitroot_kpss(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+        'unitroot_kpss': Statistic for the Kwiatowski et al unit root test.
     """
     n = len(x)
     nlags = int(4 * (n / 100) ** (1 / 4))
@@ -765,7 +818,7 @@ def unitroot_pp(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-        Dict with calculated features.
+            'unitroot_pp': Statistic for the Phillips-Perron unit root test.
     """
     try:
         test_pp = ur_pp(x)
@@ -786,7 +839,12 @@ def _get_feats(index,
                           entropy, flat_spots, heterogeneity, holt_parameters,
                           lumpiness, nonlinearity, pacf_features, stl_features,
                           stability, hw_parameters, unitroot_kpss, unitroot_pp,
-                          series_length, hurst]):
+                          series_length, hurst],
+                dict_freqs = FREQS):
+
+    if freq is None:
+        freq = pd.infer_freq(ts['ds'])
+        freq = FREQS[freq]
 
     if isinstance(ts, pd.DataFrame):
         assert 'y' in ts.columns
@@ -802,15 +860,14 @@ def _get_feats(index,
 
     return pd.DataFrame(dict(c_map), index = [index])
 
-import time
-
 def tsfeatures(ts,
-               freq,
+               freq=None,
                features = [acf_features, arch_stat, crossing_points,
                            entropy, flat_spots, heterogeneity, holt_parameters,
                            lumpiness, nonlinearity, pacf_features, stl_features,
                            stability, hw_parameters, unitroot_kpss, unitroot_pp,
                            series_length, hurst],
+               dict_freqs = FREQS,
                scale = True,
                threads = None):
     """Calculates features for time series.
@@ -835,18 +892,11 @@ def tsfeatures(ts,
         a time series.
     """
 
-    partial_get_feats = partial(_get_feats, freq=freq, scale=scale, features=features)
+    partial_get_feats = partial(_get_feats, freq=freq, scale=scale,
+                                features=features, dict_freqs=dict_freqs)
 
     with mp.Pool(threads) as pool:
         ts_features = pool.starmap(partial_get_feats, ts.groupby('unique_id'))
-
-    # iter_ts = list(ts.groupby('unique_id'))
-    # ts_features = []
-    # for feat in features:
-    #     init = time.time()
-    #     feats_ = [feat(ts['y'].values, freq) for idx, ts in iter_ts]
-    #     ts_features.append(feats_)
-    #     print(feat, time.time() - init)
 
     ts_features = pd.concat(ts_features).rename_axis('unique_id')
 

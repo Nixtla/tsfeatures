@@ -10,6 +10,10 @@ np.seterr(divide='ignore', invalid='ignore')
 ########### GENERAL UTILS ######################################################
 ################################################################################
 
+FREQS = {'H': 24, 'D': 1,
+         'M': 12, 'Q': 4,
+         'W':1, 'Y': 1}
+
 def scalets(x: np.array) -> float:
     """Mean-std scale."""
     scaledx = (x - x.mean())/x.std(ddof=1)
@@ -131,8 +135,8 @@ def hurst_exponent(x: np.array) -> float:
 
     References
     ----------
-    taken from https://gist.github.com/alexvorndran/aad69fa741e579aad093608ccaab4fe1
-    based on https://codereview.stackexchange.com/questions/224360/hurst-exponent-calculator
+    [1] Taken from https://gist.github.com/alexvorndran/aad69fa741e579aad093608ccaab4fe1
+    [2] Based on https://codereview.stackexchange.com/questions/224360/hurst-exponent-calculator
     """
     n = x.size  # num timesteps
     t = np.arange(1, n+1)

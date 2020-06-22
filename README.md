@@ -32,7 +32,7 @@ This function receives a panel pandas df with columns `unique_id`, `ds`, `y` and
 tsfeatures(panel, freq=7)
 ```
 
-## List of features
+## List of available features
 
 | Features |||
 |:--------|:------|:-------------|
@@ -48,47 +48,74 @@ tsfeatures(panel, freq=7)
 
 ## Comparison with the R implementation
 
-| feature           | diff  |
-|:------------------|------:|
-| series_length     |  0    |
-| trough            |  0    |
-| peak              |  0    |
-| nperiods          |  0    |
-| seasonal_period   |  0    |
-| crossing_points   |  0    |
-| spike             |  0    |
-| arch_lm           |  0    |
-| stability         |  0    |
-| seasonal_strength |  0    |
-| e_acf1            |  0    |
-| trend             |  0    |
-| e_acf10           |  0    |
-| x_pacf5           |  0    |
-| seas_pacf         |  0    |
-| seas_acf1         |  0    |
-| x_acf1            |  0    |
-| lumpiness         |  0    |
-| diff1_acf1        |  0    |
-| diff1_acf10       |  0    |
-| nonlinearity      |  0    |
-| x_acf10           |  0    |
-| diff2_acf1        |  0    |
-| diff2_acf10       |  0    |
-| diff1x_pacf5      |  0    |
-| unitroot_kpss     |  0    |
-| curvature         |  0    |
-| linearity         |  0    |
-| diff2x_pacf5      |  0    |
-| unitroot_pp       |  0    |
-| arch_acf          |  0.24 |
-| arch_r2           |  0.25 |
-| hw_alpha          |  1.88 |
-| hw_beta           |  1.99 |
-| flat_spots        |  2.00 |
-| entropy           |  2.33 |
-| garch_r2          |  2.51 |
-| garch_acf         |  3.00 |
-| alpha             |  3.42 |
-| beta              |  3.78 |
-| hw_gamma          |  4.18 |
-| hurst             | 12.41 |
+
+### Non-seasonal data (100 Daily M4 time series)
+
+| feature         |   diff |
+|:----------------|-------:|
+| e_acf10         |   0    |
+| seasonal_period |   0    |
+| nperiods        |   0    |
+| linearity       |   0    |
+| hw_gamma        |   0    |
+| hw_beta         |   0    |
+| hw_alpha        |   0    |
+| trend           |   0    |
+| flat_spots      |   0    |
+| series_length   |   0    |
+| e_acf1          |   0    |
+| spike           |   0    |
+| curvature       |   0    |
+| crossing_points |   0    |
+| lumpiness       |   0    |
+| diff1x_pacf5    |   0    |
+| diff1_acf10     |   0    |
+| arch_lm         |   0    |
+| diff1_acf1      |   0    |
+| stability       |   0    |
+| diff2_acf1      |   0    |
+| diff2_acf10     |   0    |
+| x_acf1          |   0    |
+| nonlinearity    |   0    |
+| diff2x_pacf5    |   0    |
+| unitroot_kpss   |   0    |
+| x_pacf5         |   0    |
+| x_acf10         |   0    |
+| unitroot_pp     |   0    |
+| arch_r2         |   1.37 |
+| alpha           |   3.2  |
+| arch_acf        |   3.3  |
+| beta            |   4.04 |
+| garch_r2        |   4.74 |
+| hurst           |   5.45 |
+| garch_acf       |   5.53 |
+| entropy         |  11.65 |
+
+To replicate this results use:
+
+```
+python -m tsfeatures.compare_with_r --results_directory ./data --dataset_name Daily --num_obs 100
+```
+
+### Sesonal data (100 Hourly M4 time series)
+
+| feature           |   diff | feature      | diff | feature   | diff    | feature    | diff    |
+|:------------------|-------:|:-------------|-----:|:----------|--------:|:-----------|--------:|
+| series_length     |   0    |seas_acf1     | 0    | trend | 2.28 | hurst | 26.02 |
+| flat_spots        |   0    |x_acf1|0| arch_r2 | 2.29 | hw_beta | 32.39 |
+| nperiods          |   0    |unitroot_kpss|0| alpha | 2.52 | trough | 35 |
+| crossing_points   |   0    |nonlinearity|0| beta | 3.67 | peak | 69 |
+| seasonal_period   |   0    |diff1_acf10|0| linearity | 3.97 |
+| lumpiness         |   0    |x_acf10|0| curvature | 4.8 |
+| stability         |   0    |seas_pacf|0| e_acf10 | 7.05 |
+| arch_lm           |   0    |unitroot_pp|0| garch_r2 | 7.32 |
+| diff2_acf1        |   0    |spike|0| hw_gamma | 7.32 |
+| diff2_acf10       |   0    |seasonal_strength|0.79| hw_alpha | 7.47 |
+| diff1_acf1        |   0    |e_acf1|1.67| garch_acf | 7.53 |
+| diff2x_pacf5      |   0    |arch_acf|2.18| entropy | 9.45 |
+
+To replicate this results use:
+
+```
+python -m tsfeatures.compare_with_r --results_directory ./data --dataset_name Hourly --num_obs 100
+```

@@ -54,32 +54,26 @@ def acf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     m = freq
     size_x = len(x)
 
-    acfx = acf(x, nlags = max(m, 10), fft=False)
+    acfx = acf(x, nlags=max(m, 10), fft=False)
     if size_x > 10:
-        acfdiff1x = acf(np.diff(x, n = 1), nlags =  10, fft=False)
+        acfdiff1x = acf(np.diff(x, n=1), nlags=10, fft=False)
     else:
         acfdiff1x = [np.nan]*2
 
     if size_x > 11:
-        acfdiff2x = acf(np.diff(x, n = 2), nlags =  10, fft=False)
+        acfdiff2x = acf(np.diff(x, n=2), nlags=10, fft=False)
     else:
         acfdiff2x = [np.nan] * 2
-
     # first autocorrelation coefficient
     acf_1 = acfx[1]
-
     # sum of squares of first 10 autocorrelation coefficients
     sum_of_sq_acf10 = np.sum((acfx[1:11]) ** 2) if size_x > 10 else np.nan
-
     # first autocorrelation ciefficient of differenced series
     diff1_acf1 = acfdiff1x[1]
-
     # sum of squared of first 10 autocorrelation coefficients of differenced series
     diff1_acf10 = np.sum((acfdiff1x[1:11]) ** 2) if size_x > 10 else np.nan
-
     # first autocorrelation coefficient of twice-differenced series
     diff2_acf1 = acfdiff2x[1]
-
     # Sum of squared of first 10 autocorrelation coefficients of twice-differenced series
     diff2_acf10 = np.sum((acfdiff2x[1:11]) ** 2) if size_x > 11 else np.nan
 
@@ -113,14 +107,14 @@ def arch_stat(x: np.array, freq: int = 1,
     dict
         Dict with calculated features.
     """
-    if len(x) <= lags+1:
+    if len(x) <= lags + 1:
         return {'arch_lm': np.nan}
     if demean:
         x -= np.mean(x)
 
     size_x = len(x)
-    mat = embed(x ** 2, lags+1)
-    X = mat[:,1:]
+    mat = embed(x ** 2, lags + 1)
+    X = mat[:, 1:]
     y = np.vstack(mat[:, 0])
 
     try:
@@ -145,7 +139,7 @@ def count_entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
     dict
         Dict with calculated features.
     """
-    entropy = x[x>0] * np.log(x[x>0])
+    entropy = x[x > 0] * np.log(x[x > 0])
     entropy = -entropy.sum()
 
     return {'entropy': entropy}
@@ -168,7 +162,7 @@ def crossing_points(x: np.array, freq: int = 1) -> Dict[str, float]:
     midline = np.median(x)
     ab = x <= midline
     lenx = len(x)
-    p1 = ab[:(lenx-1)]
+    p1 = ab[:(lenx - 1)]
     p2 = ab[1:]
     cross = (p1 & (~p2)) | (p2 & (~p1))
 
@@ -292,23 +286,19 @@ def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
     order_ar = min(size_x - 1, np.floor(10 * np.log10(size_x))).astype(int)
 
     try:
-        x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='c').resid
+        x_whitened = AR(x).fit(maxlag=order_ar, ic='aic', trend='c').resid
     except:
-        x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='nc').resid
-
+        x_whitened = AR(x).fit(maxlag=order_ar, ic='aic', trend='nc').resid
     # arch and box test
     x_archtest = arch_stat(x_whitened, m)['arch_lm']
-    LBstat = (acf(x_whitened ** 2, nlags=12, fft=False)[1:]**2).sum()
-
+    LBstat = (acf(x_whitened ** 2, nlags=12, fft=False)[1:] ** 2).sum()
     #Fit garch model
     garch_fit = arch_model(x_whitened, vol='GARCH', rescale=False).fit(disp='off')
-
     # compare arch test before and after fitting garch
     garch_fit_std = garch_fit.resid
     x_garch_archtest = arch_stat(garch_fit_std, m)['arch_lm']
-
     # compare Box test of squared residuals before and after fittig.garch
-    LBstat2 = (acf(garch_fit_std ** 2, nlags=12, fft=False)[1:]**2).sum()
+    LBstat2 = (acf(garch_fit_std ** 2, nlags=12, fft=False)[1:] ** 2).sum()
 
     output = {
         'arch_acf': LBstat,
@@ -449,7 +439,7 @@ def lumpiness(x: np.array, freq: int = 1) -> Dict[str, float]:
     nsegs = nr / width
     varx = [np.nanvar(x[lo[idx]:up[idx]], ddof=1) for idx in np.arange(int(nsegs))]
 
-    if len(x) < 2*width:
+    if len(x) < 2 * width:
         lumpiness = 0
     else:
         lumpiness = np.nanvar(varx, ddof=1)
@@ -500,29 +490,25 @@ def pacf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
 
     if len(x) > 1:
         try:
-            pacfx = pacf(x, nlags = nlags_, method='ldb')
+            pacfx = pacf(x, nlags=nlags_, method='ldb')
         except:
             pacfx = np.nan
     else:
         pacfx = np.nan
-
     # Sum of first 6 PACs squared
     if len(x) > 5:
         pacf_5 = np.sum(pacfx[1:6] ** 2)
     else:
         pacf_5 = np.nan
-
     # Sum of first 5 PACs of difference series squared
     if len(x) > 6:
         try:
-            diff1_pacf = pacf(np.diff(x, n = 1), nlags = 5, method='ldb')[1:6]
+            diff1_pacf = pacf(np.diff(x, n=1), nlags=5, method='ldb')[1:6]
             diff1_pacf_5 = np.sum(diff1_pacf**2)
         except:
             diff1_pacf_5 = np.nan
     else:
         diff1_pacf_5 = np.nan
-
-
     # Sum of first 5 PACs of twice differenced series squared
     if len(x) > 7:
         try:
@@ -606,7 +592,7 @@ def stability(x: np.array, freq: int = 1) -> Dict[str, float]:
     nsegs = nr / width
     meanx = [np.nanmean(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
 
-    if len(x) < 2*width:
+    if len(x) < 2 * width:
         stability = 0
     else:
         stability = np.nanvar(meanx, ddof=1)
@@ -699,7 +685,7 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
         elif np.nanvar(remainder + seasonal, ddof=1) < np.finfo(float).eps:
             season = 0
         else:
-            season = max(0, min(1, 1 - vare/np.nanvar(remainder + seasonal, ddof=1)))
+            season = max(0, min(1, 1 - vare / np.nanvar(remainder + seasonal, ddof=1)))
 
         peak = (np.argmax(seasonal) + 1) % m
         peak = m if peak == 0 else peak
@@ -720,10 +706,8 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
 
     linearity = coefs[1]
     curvature = -coefs[2]
-
     # ACF features
     acfremainder = acf_features(remainder, m)
-
     # Assemble features
     output = {
         'nperiods': nperiods,
@@ -736,7 +720,7 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
         'e_acf10': acfremainder['x_acf10']
     }
 
-    if m>1:
+    if m > 1:
         output['seasonal_strength'] = season
         output['peak'] = peak
         output['trough'] = trough

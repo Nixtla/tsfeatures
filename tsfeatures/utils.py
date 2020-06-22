@@ -22,8 +22,8 @@ def poly(x: np.array, p: int) -> np.array:
 
     Parameters
     ----------
-    x: iterable
-        Numeric vector.
+    x: numpy array
+        Time series.
     p: int
         Degree of the polynomial.
 
@@ -40,8 +40,8 @@ def embed(x: np.array, p: int) -> np.array:
 
     Parameters
     ----------
-    x: iterable
-        Numeric vector.
+    x: numpy array
+        Time series.
     p: int
         Embedding dimension.
 
@@ -64,8 +64,8 @@ def terasvirta_test(x: np.array, lag: int = 1, scale: bool = True) -> float:
 
     Parameters
     ----------
-    x: iterable
-        Numeric vector.
+    x: numpy array
+        Time series.
     lag: int
         Specifies the model order in terms of lags.
     scale: bool
@@ -126,8 +126,8 @@ def hurst_exponent(x: np.array) -> float:
 
     Parameters
     ----------
-    x: iterable
-        Numeric vector.
+    x: numpy array
+        Time series.
 
     References
     ----------
@@ -159,8 +159,8 @@ def ur_pp(x: np.array) -> float:
 
     Parameters
     ----------
-    x: iterable
-        Numeric vector.
+    x: numpy array
+        Time series.
 
     References
     ----------
@@ -213,8 +213,8 @@ def lambda_coef_var(lambda_par: float, x: np.array, period: int = 2):
     lambda_par: float
         Lambda Box-cox transformation parameter.
         Must be greater than zero.
-    x: time series
-        Numpy array.
+    x: numpy array
+        Time series.
     period: int
         The length of each subseries (usually the length of seasonal period).
 

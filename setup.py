@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="tsfeatures",
-    version="0.0.1",
+    version="0.1.0",
     author="Federico Garza",
     author_email="fede.garza.ramirez@gmail.com",
     description="features for time series",
@@ -20,15 +20,11 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        "arch==4.11",
-        "entropy@git+https://github.com/raphaelvallat/entropy.git@c25553f8b9f8529eb456b93c5dec53c86c779a01#egg=entropy",
-        "ESRNN==0.1.2",
-        "more-itertools==6.0.0",
-        "pandas==0.25.2",
-        "rstl==0.1.3",
-        "statsmodels==0.11.1",
-        "stldecompose==0.0.5",
-        "supersmoother==0.4",
-        "numpy==1.16.1"
+        "arch>=4.11",
+        "entropy@git+https://github.com/raphaelvallat/entropy@v0.1.1",
+        "pandas>=1.0.5",
+        "scikit-learn>=0.23.1",
+        "statsmodels>=0.11.1",
+        "supersmoother>=0.4"
     ]
 )

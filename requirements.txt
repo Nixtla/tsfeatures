@@ -1,5 +1,6 @@
-arch==4.14
-pandas==1.0.5
-scikit-learn==0.23.1
-statsmodels==0.11.1
-supersmoother==0.4
+arch>=4.14
+git+https://github.com/raphaelvallat/entropy@v0.1.1
+pandas>=1.0.5
+scikit-learn>=0.23.1
+statsmodels>=0.11.1
+supersmoother>=0.4

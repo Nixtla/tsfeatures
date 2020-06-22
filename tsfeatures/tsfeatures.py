@@ -63,25 +63,25 @@ def acf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     if size_x > 11:
         acfdiff2x = acf(np.diff(x, n = 2), nlags =  10, fft=False)
     else:
-        acfdiff2x = [np.nan]*2
+        acfdiff2x = [np.nan] * 2
 
     # first autocorrelation coefficient
     acf_1 = acfx[1]
 
     # sum of squares of first 10 autocorrelation coefficients
-    sum_of_sq_acf10 = np.sum((acfx[1:11])**2) if size_x > 10 else np.nan
+    sum_of_sq_acf10 = np.sum((acfx[1:11]) ** 2) if size_x > 10 else np.nan
 
     # first autocorrelation ciefficient of differenced series
     diff1_acf1 = acfdiff1x[1]
 
     # sum of squared of first 10 autocorrelation coefficients of differenced series
-    diff1_acf10 = np.sum((acfdiff1x[1:11])**2) if size_x > 10 else np.nan
+    diff1_acf10 = np.sum((acfdiff1x[1:11]) ** 2) if size_x > 10 else np.nan
 
     # first autocorrelation coefficient of twice-differenced series
     diff2_acf1 = acfdiff2x[1]
 
     # Sum of squared of first 10 autocorrelation coefficients of twice-differenced series
-    diff2_acf10 = np.sum((acfdiff2x[1:11])**2) if size_x > 11 else np.nan
+    diff2_acf10 = np.sum((acfdiff2x[1:11]) ** 2) if size_x > 11 else np.nan
 
     output = {
         'x_acf1': acf_1,
@@ -119,7 +119,7 @@ def arch_stat(x: np.array, freq: int = 1,
         x -= np.mean(x)
 
     size_x = len(x)
-    mat = embed(x**2, lags+1)
+    mat = embed(x ** 2, lags+1)
     X = mat[:,1:]
     y = np.vstack(mat[:, 0])
 
@@ -145,7 +145,7 @@ def count_entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
     dict
         Dict with calculated features.
     """
-    entropy = x[x>0]*np.log(x[x>0])
+    entropy = x[x>0] * np.log(x[x>0])
     entropy = -entropy.sum()
 
     return {'entropy': entropy}
@@ -289,7 +289,7 @@ def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
     m = freq
 
     size_x = len(x)
-    order_ar = min(size_x-1, np.floor(10*np.log10(size_x))).astype(int)
+    order_ar = min(size_x - 1, np.floor(10 * np.log10(size_x))).astype(int)
 
     try:
         x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='c').resid
@@ -298,7 +298,7 @@ def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
 
     # arch and box test
     x_archtest = arch_stat(x_whitened, m)['arch_lm']
-    LBstat = (acf(x_whitened**2, nlags=12, fft=False)[1:]**2).sum()
+    LBstat = (acf(x_whitened ** 2, nlags=12, fft=False)[1:]**2).sum()
 
     #Fit garch model
     garch_fit = arch_model(x_whitened, vol='GARCH', rescale=False).fit(disp='off')
@@ -308,7 +308,7 @@ def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
     x_garch_archtest = arch_stat(garch_fit_std, m)['arch_lm']
 
     # compare Box test of squared residuals before and after fittig.garch
-    LBstat2 = (acf(garch_fit_std**2, nlags=12, fft=False)[1:]**2).sum()
+    LBstat2 = (acf(garch_fit_std ** 2, nlags=12, fft=False)[1:]**2).sum()
 
     output = {
         'arch_acf': LBstat,
@@ -473,7 +473,7 @@ def nonlinearity(x: np.array, freq: int = 1) -> Dict[str, float]:
     """
     try:
         test = terasvirta_test(x)
-        test = 10*test/len(x)
+        test = 10 * test / len(x)
     except:
         test = np.nan
 
@@ -508,7 +508,7 @@ def pacf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
 
     # Sum of first 6 PACs squared
     if len(x) > 5:
-        pacf_5 = np.sum(pacfx[1:6]**2)
+        pacf_5 = np.sum(pacfx[1:6] ** 2)
     else:
         pacf_5 = np.nan
 
@@ -527,7 +527,7 @@ def pacf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     if len(x) > 7:
         try:
             diff2_pacf = pacf(np.diff(x, n = 2), nlags = 5, method='ldb')[1:6]
-            diff2_pacf_5 = np.sum(diff2_pacf**2)
+            diff2_pacf_5 = np.sum(diff2_pacf ** 2)
         except:
             diff2_pacf_5 = np.nan
     else:
@@ -701,15 +701,15 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
         else:
             season = max(0, min(1, 1 - vare/np.nanvar(remainder + seasonal, ddof=1)))
 
-        peak = (np.argmax(seasonal)+1) % m
+        peak = (np.argmax(seasonal) + 1) % m
         peak = m if peak == 0 else peak
 
-        trough = (np.argmin(seasonal)+1) % m
+        trough = (np.argmin(seasonal) + 1) % m
         trough = m if trough == 0 else trough
 
     # Compute measure of spikiness
-    d = (remainder - np.nanmean(remainder))**2
-    varloo = (vare*(n-1)-d)/(n-2)
+    d = (remainder - np.nanmean(remainder)) ** 2
+    varloo = (vare * (n-1) - d) / (n - 2)
     spike = np.nanvar(varloo, ddof=1)
 
     # Compute measures of linearity and curvature
@@ -759,7 +759,7 @@ def unitroot_kpss(x: np.array, freq: int = 1) -> Dict[str, float]:
         Dict with calculated features.
     """
     n = len(x)
-    nlags = int(4 * (n / 100)**(1 / 4))
+    nlags = int(4 * (n / 100) ** (1 / 4))
 
     try:
         test_kpss, _, _, _ = kpss(x, nlags=nlags)

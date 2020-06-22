@@ -3,6 +3,10 @@
 
 import warnings
 warnings.warn = lambda *a, **kw: False
+import os
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "1"
 
 import pandas as pd
 import numpy as np
@@ -13,15 +17,16 @@ from typing import Dict
 from itertools import groupby
 from collections import ChainMap
 from functools import partial
+from math import log, e
 from arch import arch_model
 from supersmoother import supersmoother
+from entropy import spectral_entropy
+from scipy.optimize import minimize_scalar
 from sklearn.linear_model import LinearRegression
 from statsmodels.tsa.stattools import acf, pacf, kpss
 from statsmodels.tsa.ar_model import AR
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
-from statsmodels.tsa.api import Holt
 from statsmodels.tsa.seasonal import STL
-from scipy.optimize import minimize_scalar
 
 from tsfeatures.utils import (
     poly, embed, scalets,
@@ -30,7 +35,6 @@ from tsfeatures.utils import (
     lambda_coef_var
 )
 
-np.seterr(divide='ignore', invalid='ignore')
 
 def acf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     """Calculates autocorrelation function features.
@@ -170,7 +174,7 @@ def crossing_points(x: np.array, freq: int = 1) -> Dict[str, float]:
 
     return {'crossing_points': cross.sum()}
 
-def entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
+def entropy(x: np.array, freq: int = 1, base: float = e) -> Dict[str, float]:
     """Calculates sample entropy.
 
     Parameters
@@ -186,7 +190,7 @@ def entropy(x: np.array, freq: int = 1) -> Dict[str, float]:
         Dict with calculated features.
     """
     try:
-        entropy = count_entropy(x)['entropy']
+        entropy = spectral_entropy(x, 1, normalize=True)
     except:
         entropy = np.nan
 
@@ -285,7 +289,8 @@ def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
     m = freq
 
     size_x = len(x)
-    order_ar = min(size_x-1, np.floor(10*np.log10(size_x))).astype(int) # Defaults for
+    order_ar = min(size_x-1, np.floor(10*np.log10(size_x))).astype(int)
+
     try:
         x_whitened = AR(x).fit(maxlag = order_ar, ic = 'aic', trend='c').resid
     except:
@@ -330,7 +335,7 @@ def holt_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
         Dict with calculated features.
     """
     try :
-        fit = Holt(x).fit(use_brute=False)
+        fit = ExponentialSmoothing(x, trend='add', seasonal=None).fit()
         params = {
             'alpha': fit.params['smoothing_level'],
             'beta': fit.params['smoothing_slope']
@@ -380,10 +385,8 @@ def hw_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
     dict
         Dict with calculated features.
     """
-    m = freq
-
     try:
-        fit = ExponentialSmoothing(x, seasonal_periods=m, trend='add', seasonal='add').fit(use_brute=False)
+        fit = ExponentialSmoothing(x, seasonal_periods=freq, trend='add', seasonal='add').fit()
         params = {
             'hw_alpha': fit.params['smoothing_level'],
             'hw_beta': fit.params['smoothing_slope'],
@@ -650,7 +653,7 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
         seasonal = stlfit.seasonal
     else:
         deseas = x
-        t = np.arange(len(x))+1
+        t = np.arange(len(x)) + 1
         try:
             trend0 = supersmoother(t, deseas)
         except:
@@ -815,6 +818,8 @@ def _get_feats(index,
 
     return pd.DataFrame(dict(c_map), index = [index])
 
+import time
+
 def tsfeatures(ts,
                freq,
                features = [acf_features, arch_stat, crossing_points,
@@ -851,6 +856,14 @@ def tsfeatures(ts,
     with mp.Pool(threads) as pool:
         ts_features = pool.starmap(partial_get_feats, ts.groupby('unique_id'))
 
-    feat_df = pd.concat(ts_features).rename_axis('unique_id')
+    # iter_ts = list(ts.groupby('unique_id'))
+    # ts_features = []
+    # for feat in features:
+    #     init = time.time()
+    #     feats_ = [feat(ts['y'].values, freq) for idx, ts in iter_ts]
+    #     ts_features.append(feats_)
+    #     print(feat, time.time() - init)
 
-    return feat_df
+    ts_features = pd.concat(ts_features).rename_axis('unique_id')
+
+    return ts_features

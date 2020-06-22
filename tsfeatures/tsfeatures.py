@@ -708,21 +708,19 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
             }
 
             return output
+
         remainder = deseas - trend0
         seasonal = np.zeros(len(x))
-
     # De-trended and de-seasonalized data
     detrend = x - trend0
     deseason = x - seasonal
     fits = x - remainder
-
     # Summay stats
     n = len(x)
     varx = np.nanvar(x, ddof=1)
     vare = np.nanvar(remainder, ddof=1)
     vardetrend = np.nanvar(detrend, ddof=1)
     vardeseason = np.nanvar(deseason, ddof=1)
-
     #Measure of trend strength
     if varx < np.finfo(float).eps:
         trend = 0
@@ -730,7 +728,6 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
         trend = 0
     else:
         trend = max(0, min(1, 1 - vare/vardeseason))
-
     # Measure of seasonal strength
     if m > 1:
         if varx < np.finfo(float).eps:
@@ -745,12 +742,10 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
 
         trough = (np.argmin(seasonal) + 1) % m
         trough = m if trough == 0 else trough
-
     # Compute measure of spikiness
     d = (remainder - np.nanmean(remainder)) ** 2
     varloo = (vare * (n-1) - d) / (n - 2)
     spike = np.nanvar(varloo, ddof=1)
-
     # Compute measures of linearity and curvature
     time = np.arange(n) + 1
     poly_m = poly(time, 2)
@@ -877,13 +872,17 @@ def tsfeatures(ts,
     ts: pandas df
         Pandas DataFrame with columns ['unique_id', 'ds', 'y']
     freq: int
-        Frequency of the time series.
+        Frequency of the time series. If None infers the frequency of
+        each time series and assign the seasonal periods according to
+        dict_freqs.
     features: iterable
         Iterable of features functions.
     scale: bool
         Whether (mean-std)scale data.
     threads: int
         Number of threads to use. Use None (default) for parallel processing.
+    dict_freqs: dict
+        Dictionary that maps string frequency of int. Ex: {'D': 7, 'W': 1}
 
     Returns
     -------

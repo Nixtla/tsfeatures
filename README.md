@@ -18,18 +18,32 @@ pip install tsfeatures
 
 # Usage
 
-The `tsfeatures` main function calculates by default the features used by Hyndman et.al. in their implementation of the FFORMA model.
+The `tsfeatures` main function calculates by default the features used by Montero-Manso, Talagala, Hyndman and Athanasopoulos in [their implementation of the FFORMA model](https://htmlpreview.github.io/?https://github.com/robjhyndman/M4metalearning/blob/master/docs/M4_methodology.html#features).
 
-``` python
+```python
 from tsfeatures import tsfeatures
 ```
 
-This function receives a panel pandas df with columns `unique_id`, `ds`, `y` and the frequency of the data.
+This function receives a panel pandas df with columns `unique_id`, `ds`, `y` and optionally the frequency of the data.
 
 <img src=https://raw.githubusercontent.com/FedericoGarza/tsfeatures/master/.github/images/y_train.png width="152">
 
-``` python
+```python
 tsfeatures(panel, freq=7)
+```
+
+By default (`freq=None`) the function will try to infer the frequency of each time series (using `infer_freq` from `pandas` on the `ds` column) and assign a seasonal period according to the built-in dictionary `FREQS`:
+
+```python
+FREQS = {'H': 24, 'D': 1,
+         'M': 12, 'Q': 4,
+         'W':1, 'Y': 1}
+```
+
+You can use your own dictionary using the `dict_freqs` argument:
+
+```python
+tsfeatures(panel, dict_freqs={'D': 7, 'W': 52})
 ```
 
 ## List of available features
@@ -45,9 +59,40 @@ tsfeatures(panel, freq=7)
 |frequency|nonlinearity||
 |guerrero|pacf_features||
 
+See the docs for a description of the features. To use a particular feature included in the package you need to import it:
 
-## Comparison with the R implementation
+```python
+from tsfeatures import acf_features
 
+tsfeatures(panel, freq=7, features=[acf_features])
+```
+
+You can also define your own function and use it together with the included features:
+
+```python
+def number_zeros(x, freq):
+
+    number = (x == 0).sum()
+    return {'number_zeros': number}
+
+tsfeatures(panel, freq=7, features=[acf_features, number_zeros])
+```
+
+`tsfeatures` can handle functions that receives a numpy array `x` and a frequency `freq` (this parameter is needed even if you don't use it) and returns a dictionary with the feature name as a key and its value.
+
+## R implementation
+
+You can use this package to call `tsfeatures` from R inside python (you need to have installed R, the packages `forecast` and `tsfeatures`; also the python package `rpy2`):
+
+```python
+from tsfeatures.tsfeatures_r import tsfeatures_r
+
+tsfeatures(panel, freq=7, features=["acf_features"])
+```
+
+Observe that this function receives a list of strings instead of a list of functions.
+
+## Comparison with the R implementation (sum of absolute differences)
 
 ### Non-seasonal data (100 Daily M4 time series)
 
@@ -66,8 +111,9 @@ tsfeatures(panel, freq=7)
 
 To replicate this results use:
 
-```
-python -m tsfeatures.compare_with_r --results_directory ./data --dataset_name Daily --num_obs 100
+``` console
+python -m tsfeatures.compare_with_r --results_directory /some/path
+                                    --dataset_name Daily --num_obs 100
 ```
 
 ### Sesonal data (100 Hourly M4 time series)
@@ -89,6 +135,16 @@ python -m tsfeatures.compare_with_r --results_directory ./data --dataset_name Da
 
 To replicate this results use:
 
+``` console
+python -m tsfeatures.compare_with_r --results_directory /some/path \
+                                    --dataset_name Hourly --num_obs 100
 ```
-python -m tsfeatures.compare_with_r --results_directory ./data --dataset_name Hourly --num_obs 100
-```
+
+# Authors
+
+* **Federico Garza** - [FedericoGarza](https://github.com/FedericoGarza)
+* **Kin Gutierrez** - [kdgutier](https://github.com/kdgutier)
+* **Cristian Challu** - [cristianchallu](https://github.com/cristianchallu)
+* **Jose Moralez** - [jose-moralez](https://github.com/jose-moralez)
+* **Ricardo Olivares** - [rolivaresar](https://github.com/rolivaresar)
+* **Max Mergenthaler** - [mergenthaler](https://github.com/mergenthaler)

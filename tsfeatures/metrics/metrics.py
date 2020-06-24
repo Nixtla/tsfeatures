@@ -201,6 +201,28 @@ def mini_owa(y, y_hat, y_train, seasonality, y_bench):
 
     return mini_owa
 
+
+def pinball_loss(y, y_hat, tau=0.5):
+    """
+    Calculates the Pinball Loss.
+    The Pinball loss measures the deviation of a quantile forecast.
+    By weighting the absolute deviation in a non symmetric way, the
+    loss pays more attention to under or over estimation.
+    A common value for tau is 0.5 for the deviation from the median.
+    y: numpy array
+      actual test values
+    y_hat: numpy array of len h (forecasting horizon)
+      predicted values
+    tau: float
+      Fixes the quantile against which the predictions are compared.
+    return: pinball_loss
+    """
+    delta_y = y - y_hat
+    pinball = np.maximum(tau * delta_y, (tau-1) * delta_y)
+    pinball = pinball.mean()
+    return pinball
+
+
 ######################################################################
 # PANEL EVALUATION
 ######################################################################
@@ -295,3 +317,4 @@ def evaluate_panel(y_test, y_hat, y_train,
 
 
     return evaluations
+

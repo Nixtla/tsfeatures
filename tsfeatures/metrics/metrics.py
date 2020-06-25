@@ -9,7 +9,8 @@ from math import sqrt
 from functools import partial
 from dask import delayed, compute
 
-AVAILABLE_METRICS = ['mse', 'rmse', 'mape', 'smape', 'mase', 'rmsse']
+AVAILABLE_METRICS = ['mse', 'rmse', 'mape', 'smape', 'mase', 'rmsse',
+                     'mini_owa', 'pinball_loss']
 
 ######################################################################
 # METRICS
@@ -142,7 +143,6 @@ def mase(y, y_hat, y_train, seasonality=1):
     mase = 100 * mase
     return mase
 
-
 def rmsse(y, y_hat, y_train, seasonality=1):
     """Calculates the M5 Root Mean Squared Scaled Error.
 
@@ -201,7 +201,6 @@ def mini_owa(y, y_hat, y_train, seasonality, y_bench):
 
     return mini_owa
 
-
 def pinball_loss(y, y_hat, tau=0.5):
     """
     Calculates the Pinball Loss.
@@ -221,7 +220,6 @@ def pinball_loss(y, y_hat, tau=0.5):
     pinball = np.maximum(tau * delta_y, (tau-1) * delta_y)
     pinball = pinball.mean()
     return pinball
-
 
 ######################################################################
 # PANEL EVALUATION
@@ -315,6 +313,4 @@ def evaluate_panel(y_test, y_hat, y_train,
 
     evaluations = pd.DataFrame(evaluations, columns=['unique_id', 'error'])
 
-
     return evaluations
-

@@ -839,7 +839,7 @@ def _get_feats(index,
 
     if freq is None:
         freq = pd.infer_freq(ts['ds'])
-        freq = FREQS[freq]
+        freq = dict_freqs|[freq]
 
     if isinstance(ts, pd.DataFrame):
         assert 'y' in ts.columns

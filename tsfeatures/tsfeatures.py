@@ -305,7 +305,8 @@ def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
     m = freq
 
     size_x = len(x)
-    order_ar = min(size_x - 1, np.floor(10 * np.log10(size_x))).astype(int)
+    order_ar = min(size_x - 1, np.floor(10 * np.log10(size_x)))
+    order_ar = int(order_ar)
 
     try:
         x_whitened = AR(x).fit(maxlag=order_ar, ic='aic', trend='c').resid

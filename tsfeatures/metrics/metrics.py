@@ -36,6 +36,7 @@ def mse(y, y_hat):
     scalar: MSE
     """
     mse = np.mean(np.square(y - y_hat))
+    
     return mse
 
 def rmse(y, y_hat):
@@ -61,6 +62,7 @@ def rmse(y, y_hat):
     scalar: RMSE
     """
     rmse = sqrt(np.mean(np.square(y - y_hat)))
+
     return rmse
 
 def mape(y, y_hat):
@@ -84,6 +86,7 @@ def mape(y, y_hat):
     """
     mape = np.mean(np.abs(y - y_hat) / np.abs(y))
     mape = 100 * mape
+
     return mape
 
 def smape(y, y_hat):
@@ -111,6 +114,7 @@ def smape(y, y_hat):
     """
     smape = np.mean(np.abs(y - y_hat) / (np.abs(y) + np.abs(y_hat)))
     smape = 200 * smape
+
     return smape
 
 def mase(y, y_hat, y_train, seasonality=1):
@@ -141,6 +145,7 @@ def mase(y, y_hat, y_train, seasonality=1):
     scale = np.mean(abs(y_train[seasonality:] - y_train[:-seasonality]))
     mase = np.mean(abs(y - y_hat)) / scale
     mase = 100 * mase
+
     return mase
 
 def rmsse(y, y_hat, y_train, seasonality=1):
@@ -164,6 +169,7 @@ def rmsse(y, y_hat, y_train, seasonality=1):
     scale = np.mean(np.square(y_train[seasonality:] - y_train[:-seasonality]))
     rmsse = sqrt(mse(y, y_hat) / scale)
     rmsse = 100 * rmsse
+
     return rmsse
 
 def mini_owa(y, y_hat, y_train, seasonality, y_bench):
@@ -202,23 +208,30 @@ def mini_owa(y, y_hat, y_train, seasonality, y_bench):
     return mini_owa
 
 def pinball_loss(y, y_hat, tau=0.5):
-    """
-    Calculates the Pinball Loss.
+    """Calculates the Pinball Loss.
+
     The Pinball loss measures the deviation of a quantile forecast.
     By weighting the absolute deviation in a non symmetric way, the
     loss pays more attention to under or over estimation.
     A common value for tau is 0.5 for the deviation from the median.
+
+    Parameters
+    ----------
     y: numpy array
       actual test values
     y_hat: numpy array of len h (forecasting horizon)
       predicted values
     tau: float
       Fixes the quantile against which the predictions are compared.
+
+    Return
+    ------
     return: pinball_loss
     """
     delta_y = y - y_hat
     pinball = np.maximum(tau * delta_y, (tau-1) * delta_y)
     pinball = pinball.mean()
+
     return pinball
 
 ######################################################################

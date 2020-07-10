@@ -253,7 +253,7 @@ def entropy(x, freq=None):
         Dict with calculated features.
     """
     try:
-        entropy = sample_entropy(x)
+        entropy = spectral_entropy(x, freq, method='welch', normalize=True)
     except:
         entropy = np.nan
 

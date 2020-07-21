@@ -830,7 +830,7 @@ def unitroot_pp(x: np.array, freq: int = 1) -> Dict[str, float]:
 def _get_feats(index,
                ts,
                freq,
-               scale=True,
+               scale = True,
                features = [acf_features, arch_stat, crossing_points,
                           entropy, flat_spots, heterogeneity, holt_parameters,
                           lumpiness, nonlinearity, pacf_features, stl_features,
@@ -894,6 +894,68 @@ def tsfeatures(ts,
 
     partial_get_feats = partial(_get_feats, freq=freq, scale=scale,
                                 features=features, dict_freqs=dict_freqs)
+
+    with mp.Pool(threads) as pool:
+        ts_features = pool.starmap(partial_get_feats, ts.groupby('unique_id'))
+
+    ts_features = pd.concat(ts_features).rename_axis('unique_id')
+
+    return ts_features
+
+##############################################################################
+################# WIDE Function
+############################################################################
+
+def _get_feats_wide(index,
+                    ts,
+                    scale = True,
+                    features = [acf_features, arch_stat, crossing_points,
+                                entropy, flat_spots, heterogeneity, holt_parameters,
+                                lumpiness, nonlinearity, pacf_features, stl_features,
+                                stability, hw_parameters, unitroot_kpss, unitroot_pp,
+                                series_length, hurst]):
+
+    seasonality = ts['seasonality'].item()
+    y = ts['y'].item()
+    y = np.array(y)
+
+    if scale:
+        y = scalets(y)
+
+    c_map = ChainMap(*[dict_feat for dict_feat in [func(y, seasonality) for func in features]])
+
+    return pd.DataFrame(dict(c_map), index = [index])
+
+def tsfeatures_wide(ts,
+                    features = [acf_features, arch_stat, crossing_points,
+                                entropy, flat_spots, heterogeneity, holt_parameters,
+                                lumpiness, nonlinearity, pacf_features, stl_features,
+                                stability, hw_parameters, unitroot_kpss, unitroot_pp,
+                                series_length, hurst],
+                    scale = True,
+                    threads = None):
+    """Calculates features for time series.
+
+    Parameters
+    ----------
+    ts: pandas df
+        Pandas DataFrame with columns ['unique_id', 'seasonality', 'y']
+    features: iterable
+        Iterable of features functions.
+    scale: bool
+        Whether (mean-std)scale data.
+    threads: int
+        Number of threads to use. Use None (default) for parallel processing.
+
+    Returns
+    -------
+    pandas df
+        Pandas DataFrame where each column is a feature and each row
+        a time series.
+    """
+
+    partial_get_feats = partial(_get_feats_wide, scale=scale,
+                                features=features)
 
     with mp.Pool(threads) as pool:
         ts_features = pool.starmap(partial_get_feats, ts.groupby('unique_id'))

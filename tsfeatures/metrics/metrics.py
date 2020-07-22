@@ -36,7 +36,7 @@ def mse(y, y_hat):
     scalar: MSE
     """
     mse = np.mean(np.square(y - y_hat))
-    
+
     return mse
 
 def rmse(y, y_hat):
@@ -112,7 +112,9 @@ def smape(y, y_hat):
     ------
     scalar: SMAPE
     """
-    smape = np.mean(np.abs(y - y_hat) / (np.abs(y) + np.abs(y_hat)))
+    scale = np.abs(y) + np.abs(y_hat)
+    scale[scale == 0] = 1e-3
+    smape = np.mean(np.abs(y - y_hat) / scale)
     smape = 200 * smape
 
     return smape
@@ -302,15 +304,16 @@ def evaluate_panel(y_test, y_hat, y_train,
     metric_name = metric.__code__.co_name
     uids = y_test['unique_id'].unique()
     y_hat_uids = y_hat['unique_id'].unique()
+
     assert len(y_test)==len(y_hat), "not same length"
     assert all(uids == y_hat_uids), "not same u_ids"
-
 
     y_test = y_test.set_index(['unique_id', 'ds'])
     y_hat = y_hat.set_index(['unique_id', 'ds'])
 
     if metric_name in ['mase', 'rmsse']:
         y_train = y_train.set_index(['unique_id', 'ds'])
+        
     elif metric_name in ['mini_owa']:
         y_train = y_train.set_index(['unique_id', 'ds'])
         y_bench = y_bench.set_index(['unique_id', 'ds'])

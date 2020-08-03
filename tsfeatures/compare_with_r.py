@@ -6,9 +6,9 @@ import sys
 import time
 
 from tsfeatures import tsfeatures, heterogeneity
-from tsfeatures.tsfeatures_r import tsfeatures_r
-from tsfeatures.m4_data import prepare_m4_data
-from tsfeatures.utils import FREQS
+from .tsfeatures_r import tsfeatures_r
+from .m4_data import prepare_m4_data
+from .utils import FREQS
 
 
 def compare_features_m4(dataset_name, directory, num_obs=1000000):

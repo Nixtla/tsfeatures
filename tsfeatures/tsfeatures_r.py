@@ -73,6 +73,8 @@ def tsfeatures_r(ts: pd.DataFrame,
     rfunc = robjects.r(rstring)
 
     feats = rfunc(ts, freq, features, **kwargs)
+    pandas2ri.deactivate()
+    
     feats = feats.set_index('unique_id')
 
     renamer={'ARCH.LM': 'arch_lm', 'length': 'series_length'}

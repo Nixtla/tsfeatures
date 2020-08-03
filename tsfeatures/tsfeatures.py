@@ -8,27 +8,30 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
 
-import pandas as pd
 import numpy as np
-import multiprocessing as mp
-import statsmodels.api as sm
+import pandas as pd
 
-from typing import Dict
-from itertools import groupby
-from collections import ChainMap
-from functools import partial
-from math import log, e
 from arch import arch_model
-from supersmoother import supersmoother
+from collections import ChainMap
+from dask import delayed, compute
+from dask.dataframe import from_pandas
+from dask.diagnostics import ProgressBar
 from entropy import spectral_entropy
+from functools import partial
+from itertools import groupby
+from math import log, e
+from multiprocessing import cpu_count, Pool
 from scipy.optimize import minimize_scalar
 from sklearn.linear_model import LinearRegression
-from statsmodels.tsa.stattools import acf, pacf, kpss
+from statsmodels.api import add_constant, OLS
 from statsmodels.tsa.ar_model import AR
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.seasonal import STL
+from statsmodels.tsa.stattools import acf, pacf, kpss
+from supersmoother import supersmoother
+from typing import List, Dict, Optional, Callable
 
-from tsfeatures.utils import (
+from .utils import (
     poly, embed, scalets,
     terasvirta_test,
     hurst_exponent, ur_pp,
@@ -199,7 +202,8 @@ def entropy(x: np.array, freq: int = 1, base: float = e) -> Dict[str, float]:
     [1] https://raphaelvallat.com/entropy/build/html/index.html
     """
     try:
-        entropy = spectral_entropy(x, 1, normalize=True)
+        with np.errstate(divide='ignore'):
+            entropy = spectral_entropy(x, 1, normalize=True)
     except:
         entropy = np.nan
 
@@ -541,7 +545,7 @@ def pacf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     if len(x) > 6:
         try:
             diff1_pacf = pacf(np.diff(x, n=1), nlags=5, method='ldb')[1:6]
-            diff1_pacf_5 = np.sum(diff1_pacf**2)
+            diff1_pacf_5 = np.sum(diff1_pacf ** 2)
         except:
             diff1_pacf_5 = np.nan
     else:
@@ -750,8 +754,8 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     # Compute measures of linearity and curvature
     time = np.arange(n) + 1
     poly_m = poly(time, 2)
-    time_x = sm.add_constant(poly_m)
-    coefs = sm.OLS(trend0, time_x).fit().params
+    time_x = add_constant(poly_m)
+    coefs = OLS(trend0, time_x).fit().params
 
     linearity = coefs[1]
     curvature = -coefs[2]
@@ -814,7 +818,7 @@ def unitroot_pp(x: np.array, freq: int = 1) -> Dict[str, float]:
     Returns
     -------
     dict
-            'unitroot_pp': Statistic for the Phillips-Perron unit root test.
+        'unitroot_pp': Statistic for the Phillips-Perron unit root test.
     """
     try:
         test_pp = ur_pp(x)
@@ -824,7 +828,7 @@ def unitroot_pp(x: np.array, freq: int = 1) -> Dict[str, float]:
     return {'unitroot_pp': test_pp}
 
 ###############################################################################
-#### MAIN FUNCTIONS
+#### MAIN FUNCTIONS ###########################################################
 ###############################################################################
 
 def _get_feats(index,
@@ -856,34 +860,36 @@ def _get_feats(index,
 
     return pd.DataFrame(dict(c_map), index = [index])
 
-def tsfeatures(ts,
-               freq=None,
-               features = [acf_features, arch_stat, crossing_points,
-                           entropy, flat_spots, heterogeneity, holt_parameters,
-                           lumpiness, nonlinearity, pacf_features, stl_features,
-                           stability, hw_parameters, unitroot_kpss, unitroot_pp,
-                           series_length, hurst],
-               dict_freqs = FREQS,
-               scale = True,
-               threads = None):
+def tsfeatures(ts: pd.DataFrame,
+               freq: Optional[int] = None,
+               features: List[Callable] = [acf_features, arch_stat, crossing_points,
+                                           entropy, flat_spots, heterogeneity,
+                                           holt_parameters, lumpiness, nonlinearity,
+                                           pacf_features, stl_features, stability,
+                                           hw_parameters, unitroot_kpss, unitroot_pp,
+                                           series_length, hurst],
+               dict_freqs: Dict[str, int] = FREQS,
+               scale: bool = True,
+               threads: Optional[int] = None) -> pd.DataFrame:
     """Calculates features for time series.
 
     Parameters
     ----------
     ts: pandas df
-        Pandas DataFrame with columns ['unique_id', 'ds', 'y']
+        Pandas DataFrame with columns ['unique_id', 'ds', 'y'].
+        Long panel of time series.
     freq: int
-        Frequency of the time series. If None infers the frequency of
-        each time series and assign the seasonal periods according to
+        Frequency of the time series. If None the frequency of
+        each time series is infered and assigns the seasonal periods according to
         dict_freqs.
     features: iterable
         Iterable of features functions.
     scale: bool
         Whether (mean-std)scale data.
-    threads: int
-        Number of threads to use. Use None (default) for parallel processing.
     dict_freqs: dict
         Dictionary that maps string frequency of int. Ex: {'D': 7, 'W': 1}
+    threads: int
+        Number of threads to use. Use None (default) for parallel processing.
 
     Returns
     -------
@@ -891,20 +897,20 @@ def tsfeatures(ts,
         Pandas DataFrame where each column is a feature and each row
         a time series.
     """
-
     partial_get_feats = partial(_get_feats, freq=freq, scale=scale,
                                 features=features, dict_freqs=dict_freqs)
 
-    with mp.Pool(threads) as pool:
+    with Pool(threads) as pool:
         ts_features = pool.starmap(partial_get_feats, ts.groupby('unique_id'))
 
     ts_features = pd.concat(ts_features).rename_axis('unique_id')
+    ts_features = ts_features.reset_index()
 
     return ts_features
 
-##############################################################################
-################# WIDE Function
-############################################################################
+################################################################################
+#### MAIN WIDE FUNCTION ########################################################
+################################################################################
 
 def _get_feats_wide(index,
                     ts,
@@ -914,7 +920,6 @@ def _get_feats_wide(index,
                                 lumpiness, nonlinearity, pacf_features, stl_features,
                                 stability, hw_parameters, unitroot_kpss, unitroot_pp,
                                 series_length, hurst]):
-
     seasonality = ts['seasonality'].item()
     y = ts['y'].item()
     y = np.array(y)
@@ -926,20 +931,22 @@ def _get_feats_wide(index,
 
     return pd.DataFrame(dict(c_map), index = [index])
 
-def tsfeatures_wide(ts,
-                    features = [acf_features, arch_stat, crossing_points,
-                                entropy, flat_spots, heterogeneity, holt_parameters,
-                                lumpiness, nonlinearity, pacf_features, stl_features,
-                                stability, hw_parameters, unitroot_kpss, unitroot_pp,
-                                series_length, hurst],
-                    scale = True,
-                    threads = None):
+def tsfeatures_wide(ts: pd.DataFrame,
+                    features: List[Callable] = [acf_features, arch_stat, crossing_points,
+                                                entropy, flat_spots, heterogeneity,
+                                                holt_parameters, lumpiness, nonlinearity,
+                                                pacf_features, stl_features, stability,
+                                                hw_parameters, unitroot_kpss, unitroot_pp,
+                                                series_length, hurst],
+                    scale: bool = True,
+                    threads: Optional[int] = None) -> pd.DataFrame:
     """Calculates features for time series.
 
     Parameters
     ----------
     ts: pandas df
-        Pandas DataFrame with columns ['unique_id', 'seasonality', 'y']
+        Pandas DataFrame with columns ['unique_id', 'seasonality', 'y'].
+        Wide panel of time series.
     features: iterable
         Iterable of features functions.
     scale: bool
@@ -953,13 +960,13 @@ def tsfeatures_wide(ts,
         Pandas DataFrame where each column is a feature and each row
         a time series.
     """
-
     partial_get_feats = partial(_get_feats_wide, scale=scale,
                                 features=features)
 
-    with mp.Pool(threads) as pool:
+    with Pool(threads) as pool:
         ts_features = pool.starmap(partial_get_feats, ts.groupby('unique_id'))
 
     ts_features = pd.concat(ts_features).rename_axis('unique_id')
+    ts_features = ts_features.reset_index()
 
     return ts_features

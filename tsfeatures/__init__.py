@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from tsfeatures.tsfeatures import *
+from .tsfeatures import *

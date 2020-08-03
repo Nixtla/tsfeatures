@@ -13,9 +13,6 @@ import pandas as pd
 
 from arch import arch_model
 from collections import ChainMap
-from dask import delayed, compute
-from dask.dataframe import from_pandas
-from dask.diagnostics import ProgressBar
 from entropy import spectral_entropy
 from functools import partial
 from itertools import groupby

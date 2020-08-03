@@ -3,11 +3,11 @@
 
 import numpy as np
 import pandas as pd
-import multiprocessing as mp
 
-from math import sqrt
 from functools import partial
-from dask import delayed, compute
+from math import sqrt
+from multiprocessing import Pool
+from typing import Callable, Optional
 
 AVAILABLE_METRICS = ['mse', 'rmse', 'mape', 'smape', 'mase', 'rmsse',
                      'mini_owa', 'pinball_loss']
@@ -16,7 +16,7 @@ AVAILABLE_METRICS = ['mse', 'rmse', 'mape', 'smape', 'mase', 'rmsse',
 # METRICS
 ######################################################################
 
-def mse(y, y_hat):
+def mse(y: np.array, y_hat:np.array) -> float:
     """Calculates Mean Squared Error.
 
     MSE measures the prediction accuracy of a
@@ -31,15 +31,16 @@ def mse(y, y_hat):
     y_hat: numpy array
         predicted values
 
-    Return
-    ------
-    scalar: MSE
+    Returns
+    -------
+    scalar:
+        MSE
     """
     mse = np.mean(np.square(y - y_hat))
 
     return mse
 
-def rmse(y, y_hat):
+def rmse(y: np.array, y_hat:np.array) -> float:
     """Calculates Root Mean Squared Error.
 
     RMSE measures the prediction accuracy of a
@@ -57,15 +58,15 @@ def rmse(y, y_hat):
     y_hat: numpy array
       predicted values
 
-    Return
-    ------
+    Returns
+    -------
     scalar: RMSE
     """
     rmse = sqrt(np.mean(np.square(y - y_hat)))
 
     return rmse
 
-def mape(y, y_hat):
+def mape(y: np.array, y_hat:np.array) -> float:
     """Calculates Mean Absolute Percentage Error.
 
     MAPE measures the relative prediction accuracy of a
@@ -80,8 +81,8 @@ def mape(y, y_hat):
     y_hat: numpy array
       predicted values
 
-    Return
-    ------
+    Returns
+    -------
     scalar: MAPE
     """
     mape = np.mean(np.abs(y - y_hat) / np.abs(y))
@@ -89,7 +90,7 @@ def mape(y, y_hat):
 
     return mape
 
-def smape(y, y_hat):
+def smape(y: np.array, y_hat:np.array) -> float:
     """Calculates Symmetric Mean Absolute Percentage Error.
 
     SMAPE measures the relative prediction accuracy of a
@@ -108,8 +109,8 @@ def smape(y, y_hat):
     y_hat: numpy array
       predicted values
 
-    Return
-    ------
+    Returns
+    -------
     scalar: SMAPE
     """
     scale = np.abs(y) + np.abs(y_hat)
@@ -119,7 +120,8 @@ def smape(y, y_hat):
 
     return smape
 
-def mase(y, y_hat, y_train, seasonality=1):
+def mase(y: np.array, y_hat: np.array,
+         y_train: np.array, seasonality: int = 1) -> float:
     """Calculates the M4 Mean Absolute Scaled Error.
 
     MASE measures the relative prediction accuracy of a
@@ -140,8 +142,8 @@ def mase(y, y_hat, y_train, seasonality=1):
       Hourly 24,  Daily 7, Weekly 52,
       Monthly 12, Quarterly 4, Yearly 1
 
-    Return
-    ------
+    Returns
+    -------
     scalar: MASE
     """
     scale = np.mean(abs(y_train[seasonality:] - y_train[:-seasonality]))
@@ -150,7 +152,8 @@ def mase(y, y_hat, y_train, seasonality=1):
 
     return mase
 
-def rmsse(y, y_hat, y_train, seasonality=1):
+def rmsse(y: np.array, y_hat: np.array,
+         y_train: np.array, seasonality: int = 1) -> float:
     """Calculates the M5 Root Mean Squared Scaled Error.
 
     Parameters
@@ -159,13 +162,15 @@ def rmsse(y, y_hat, y_train, seasonality=1):
       actual test values
     y_hat: numpy array of len h (forecasting horizon)
       predicted values
+    y_train: numpy array
+       actual train values
     seasonality: int
       main frequency of the time series
       Hourly 24,  Daily 7, Weekly 52,
       Monthly 12, Quarterly 4, Yearly 1
 
-    Return
-    ------
+    Returns
+    -------
     scalar: RMSSE
     """
     scale = np.mean(np.square(y_train[seasonality:] - y_train[:-seasonality]))
@@ -174,7 +179,10 @@ def rmsse(y, y_hat, y_train, seasonality=1):
 
     return rmsse
 
-def mini_owa(y, y_hat, y_train, seasonality, y_bench):
+def mini_owa(y: np.array, y_hat: np.array,
+             y_train: np.array,
+             seasonality: int,
+             y_bench: np.array):
     """Calculates the Overall Weighted Average for a single series.
 
     MASE, sMAPE for Naive2 and current model
@@ -186,17 +194,17 @@ def mini_owa(y, y_hat, y_train, seasonality, y_bench):
         actual test values
     y_hat: numpy array of len h (forecasting horizon)
         predicted values
+    y_train: numpy array
+        insample values of the series for scale
     seasonality: int
         main frequency of the time series
         Hourly 24,  Daily 7, Weekly 52,
         Monthly 12, Quarterly 4, Yearly 1
-    y_train: numpy array
-        insample values of the series for scale
     y_bench: numpy array of len h (forecasting horizon)
         predicted values of the benchmark model
 
-    Return
-    ------
+    Returns
+    -------
     return: mini_OWA
     """
     mase_y = mase(y, y_hat, y_train, seasonality)
@@ -209,7 +217,7 @@ def mini_owa(y, y_hat, y_train, seasonality, y_bench):
 
     return mini_owa
 
-def pinball_loss(y, y_hat, tau=0.5):
+def pinball_loss(y: np.array, y_hat: np.array, tau: int = 0.5):
     """Calculates the Pinball Loss.
 
     The Pinball loss measures the deviation of a quantile forecast.
@@ -226,8 +234,8 @@ def pinball_loss(y, y_hat, tau=0.5):
     tau: float
       Fixes the quantile against which the predictions are compared.
 
-    Return
-    ------
+    Returns
+    -------
     return: pinball_loss
     """
     delta_y = y - y_hat
@@ -237,7 +245,7 @@ def pinball_loss(y, y_hat, tau=0.5):
     return pinball
 
 ######################################################################
-# PANEL EVALUATION
+#  PANEL EVALUATION
 ######################################################################
 
 def _evaluate_ts(uid, y_test, y_hat,
@@ -264,10 +272,13 @@ def _evaluate_ts(uid, y_test, y_hat,
 
     return uid, evaluation_uid
 
-def evaluate_panel(y_test, y_hat, y_train,
-                   metric, seasonality=None,
-                   y_bench=None,
-                   threads=None):
+def evaluate_panel(y_test: pd.DataFrame,
+                   y_hat: pd.DataFrame,
+                   y_train: pd.DataFrame,
+                   metric: Callable,
+                   seasonality: Optional[int] = None,
+                   y_bench: Optional[pd.DataFrame] = None,
+                   threads: Optional[int] = None):
     """Calculates a specific metric for y and y_hat (and y_train, if needed).
 
     Parameters
@@ -279,6 +290,8 @@ def evaluate_panel(y_test, y_hat, y_train,
     y_train: pandas df
         df with columns ['unique_id', 'ds', 'y'] (train)
         This is used in the scaled metrics ('mase', 'rmsse').
+    metric: callable
+        loss function
     seasonality: int
         Main frequency of the time series.
         Used in ('mase', 'rmsse').
@@ -296,10 +309,10 @@ def evaluate_panel(y_test, y_hat, y_train,
     threads: int
         Number of threads to use. Use None (default) for parallel processing.
 
-    Return
+    Returns
     ------
-    list of metric evaluations for each unique_id
-        in the panel data
+    pandas dataframe:
+        loss ofr each unique_id in the panel data
     """
     metric_name = metric.__code__.co_name
     uids = y_test['unique_id'].unique()
@@ -313,7 +326,7 @@ def evaluate_panel(y_test, y_hat, y_train,
 
     if metric_name in ['mase', 'rmsse']:
         y_train = y_train.set_index(['unique_id', 'ds'])
-        
+
     elif metric_name in ['mini_owa']:
         y_train = y_train.set_index(['unique_id', 'ds'])
         y_bench = y_bench.set_index(['unique_id', 'ds'])
@@ -324,7 +337,7 @@ def evaluate_panel(y_test, y_hat, y_train,
                                  y_bench=y_bench,
                                  metric_name=metric_name)
 
-    with mp.Pool(threads) as pool:
+    with Pool(threads) as pool:
         evaluations = pool.map(partial_evaluation, uids)
 
     evaluations = pd.DataFrame(evaluations, columns=['unique_id', 'error'])

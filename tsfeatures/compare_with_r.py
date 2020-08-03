@@ -16,20 +16,20 @@ def compare_features_m4(dataset_name, directory, num_obs=1000000):
                                           directory = directory,
                                           num_obs=num_obs)
 
-    freq = FREQS[dataset_name]
+    freq = FREQS[dataset_name[0]]
 
     print('Calculating python features...')
     init = time.time()
-    py_feats = tsfeatures(y_train_df, freq=freq)
+    py_feats = tsfeatures(y_train_df, freq=freq).set_index('unique_id')
     print('Total time: ', time.time() - init)
 
     print('Calculating r features...')
     init = time.time()
-    r_feats = tsfeatures_r(y_train_df, freq=freq, parallel=True)
+    r_feats = tsfeatures_r(y_train_df, freq=freq, parallel=True).set_index('unique_id')
     print('Total time: ', time.time() - init)
 
     diff = py_feats.sub(r_feats, 1).abs().sum(0).sort_values()
-
+    
     return diff
 
 def main(args):
@@ -41,7 +41,7 @@ def main(args):
     if args.dataset_name:
         datasets = [args.dataset_name]
     else:
-        datasets = FREQS.keys()
+        datasets = ['Daily', 'Hourly', 'Yearly', 'Quarterly', 'Weekly', 'Monthly']
 
     for dataset_name in datasets:
         diff = compare_features_m4(dataset_name, args.results_directory, num_obs)

@@ -74,8 +74,6 @@ def tsfeatures_r(ts: pd.DataFrame,
 
     feats = rfunc(ts, freq, features, **kwargs)
     pandas2ri.deactivate()
-    
-    feats = feats.set_index('unique_id')
 
     renamer={'ARCH.LM': 'arch_lm', 'length': 'series_length'}
     feats = feats.rename(columns=renamer)
@@ -149,7 +147,7 @@ def tsfeatures_r_wide(ts: pd.DataFrame,
     ys = ts['y'].to_list()
 
     feats = rfunc(uids, seasonalities, ys, features, **kwargs)
-    feats = feats.set_index('unique_id')
+    pandas2ri.deactivate()
 
     renamer={'ARCH.LM': 'arch_lm', 'length': 'series_length'}
     feats = feats.rename(columns=renamer)

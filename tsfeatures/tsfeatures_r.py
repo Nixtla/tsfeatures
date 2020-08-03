@@ -1,34 +1,28 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from typing import List
+
+import pandas as pd
 import rpy2.robjects as robjects
 from rpy2.robjects import pandas2ri
 
-def tsfeatures_r(ts, freq,
-                 features = ["length",
-                            "acf_features",
-                            "arch_stat",
-                            "crossing_points",
-                            "entropy",
-                            "flat_spots",
-                            "heterogeneity",
-                            "holt_parameters",
-                            "hurst",
-                            "hw_parameters",
-                            "lumpiness",
-                            "nonlinearity",
-                            "pacf_features",
-                            "stability",
-                            "stl_features",
-                            "unitroot_kpss",
-                            "unitroot_pp"],
-                 **kwargs):
+def tsfeatures_r(ts: pd.DataFrame,
+                 freq: int,
+                 features: List[str] = ["length", "acf_features", "arch_stat",
+                                        "crossing_points", "entropy", "flat_spots",
+                                        "heterogeneity", "holt_parameters",
+                                        "hurst", "hw_parameters", "lumpiness",
+                                        "nonlinearity", "pacf_features", "stability",
+                                        "stl_features", "unitroot_kpss", "unitroot_pp"],
+                 **kwargs) -> pd.DataFrame:
     """tsfeatures wrapper using r.
 
     Parameters
     ----------
     ts: pandas df
-        Pandas DataFrame with columns ['unique_id', 'ds', 'y']
+        Pandas DataFrame with columns ['unique_id', 'ds', 'y'].
+        Long panel of time series.
     freq: int
         Frequency of the time series.
     features: List[str]
@@ -86,33 +80,21 @@ def tsfeatures_r(ts, freq,
 
     return feats
 
-def tsfeatures_r_wide(ts,
-                      features = ["length",
-                                  "acf_features",
-                                  "arch_stat",
-                                  "crossing_points",
-                                  "entropy",
-                                  "flat_spots",
-                                  "heterogeneity",
-                                  "holt_parameters",
-                                  "hurst",
-                                  "hw_parameters",
-                                  "lumpiness",
-                                  "nonlinearity",
-                                  "pacf_features",
-                                  "stability",
-                                  "stl_features",
-                                  "unitroot_kpss",
-                                  "unitroot_pp"],
-                      **kwargs):
+def tsfeatures_r_wide(ts: pd.DataFrame,
+                      features: List[str] = ["length", "acf_features", "arch_stat",
+                                             "crossing_points", "entropy", "flat_spots",
+                                             "heterogeneity", "holt_parameters",
+                                             "hurst", "hw_parameters", "lumpiness",
+                                             "nonlinearity", "pacf_features", "stability",
+                                             "stl_features", "unitroot_kpss", "unitroot_pp"],
+                      **kwargs) -> pd.DataFrame:
     """tsfeatures wrapper using r.
 
     Parameters
     ----------
     ts: pandas df
-        Pandas DataFrame with columns ['unique_id', 'seasonality', 'y']
-    freq: int
-        Frequency of the time series.
+        Pandas DataFrame with columns ['unique_id', 'seasonality', 'y'].
+        Wide panel of time series.
     features: List[str]
         String list of features to calculate.
     **kwargs:

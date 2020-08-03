@@ -13,7 +13,6 @@ import pandas as pd
 
 from arch import arch_model
 from collections import ChainMap
-from entropy import spectral_entropy
 from functools import partial
 from itertools import groupby
 from math import log, e
@@ -29,11 +28,10 @@ from supersmoother import supersmoother
 from typing import List, Dict, Optional, Callable
 
 from .utils import (
-    poly, embed, scalets,
-    terasvirta_test,
-    hurst_exponent, ur_pp,
-    lambda_coef_var,
-    FREQS
+    embed, FREQS, hurst_exponent,
+    lambda_coef_var, poly,
+    scalets, spectral_entropy,
+    terasvirta_test, ur_pp
 )
 
 

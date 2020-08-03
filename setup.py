@@ -19,7 +19,6 @@ setuptools.setup(
     python_requires='>=3.6',
     install_requires=[
         "arch>=4.11",
-        "entropy @ https://github.com/raphaelvallat/entropy/tarball/tag/v0.1.1",
         "pandas>=1.0.5",
         "scikit-learn>=0.23.1",
         "statsmodels>=0.11.1",

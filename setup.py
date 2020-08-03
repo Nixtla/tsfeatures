@@ -6,9 +6,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="tsfeatures",
     version="0.1.0",
-    author="Federico Garza",
-    author_email="fede.garza.ramirez@gmail.com",
-    description="features for time series",
+    description="Calculates various features from time series data.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/FedericoGarza/tsfeatures",

@@ -5,7 +5,7 @@ import argparse
 import sys
 import time
 
-from tsfeatures import tsfeatures, heterogeneity
+from tsfeatures import tsfeatures
 from .tsfeatures_r import tsfeatures_r
 from .m4_data import prepare_m4_data
 from .utils import FREQS
@@ -29,7 +29,7 @@ def compare_features_m4(dataset_name, directory, num_obs=1000000):
     print('Total time: ', time.time() - init)
 
     diff = py_feats.sub(r_feats, 1).abs().sum(0).sort_values()
-    
+
     return diff
 
 def main(args):

@@ -12,11 +12,12 @@ np.seterr(divide='ignore', invalid='ignore')
 
 FREQS = {'H': 24, 'D': 1,
          'M': 12, 'Q': 4,
-         'W':1, 'Y': 1}
+         'W': 1, 'Y': 1}
 
 def scalets(x: np.array) -> float:
     """Mean-std scale."""
-    scaledx = (x - x.mean())/x.std(ddof=1)
+    scaledx = (x - x.mean()) / x.std(ddof=1)
+
     return scaledx
 
 def poly(x: np.array, p: int) -> np.array:
@@ -35,9 +36,9 @@ def poly(x: np.array, p: int) -> np.array:
     ----------
     https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/poly
     """
-    X = np.transpose(np.vstack(list((x**k for k in range(p+1)))))
+    X = np.transpose(np.vstack(list((x ** k for k in range(p + 1)))))
 
-    return np.linalg.qr(X)[0][:,1:]
+    return np.linalg.qr(X)[0][:, 1:]
 
 def embed(x: np.array, p: int) -> np.array:
     """Embeds the time series x into a low-dimensional Euclidean space.
@@ -54,7 +55,7 @@ def embed(x: np.array, p: int) -> np.array:
     https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/embed
     """
     x = np.transpose(np.vstack(list((np.roll(x, k) for k in range(p)))))
-    x = x[(p-1):]
+    x = x[p - 1:]
 
     return x
 
@@ -77,7 +78,8 @@ def terasvirta_test(x: np.array, lag: int = 1, scale: bool = True) -> float:
 
     Returns
     -------
-    float: terasvirta statistic.
+    float
+        Terasvirta statistic.
 
     References
     ----------
@@ -86,7 +88,7 @@ def terasvirta_test(x: np.array, lag: int = 1, scale: bool = True) -> float:
     if scale: x = scalets(x)
 
     size_x = len(x)
-    y = embed(x, lag+1)
+    y = embed(x, lag + 1)
 
     X = y[:, 1:]
     X = sm.add_constant(X)
@@ -96,32 +98,31 @@ def terasvirta_test(x: np.array, lag: int = 1, scale: bool = True) -> float:
     ols = sm.OLS(y, X).fit()
 
     u = ols.resid
-    ssr0 = (u**2).sum()
+    ssr0 = (u ** 2).sum()
 
     X_nn_list = []
 
     for i in range(lag):
         for j in range(i, lag):
-            element = X[:, i+1]*X[:, j+1]
+            element = X[:, i + 1] * X[:, j + 1]
             element = np.vstack(element)
             X_nn_list.append(element)
 
     for i in range(lag):
         for j in range(i, lag):
             for k in range(j, lag):
-                element = X[:, i+1]*X[:, j+1]*X[:, k+1]
+                element = X[:, i + 1] * X[:, j + 1] * X[:, k + 1]
                 element = np.vstack(element)
                 X_nn_list.append(element)
-
 
     X_nn = np.concatenate(X_nn_list, axis=1)
     X_nn = np.concatenate([X, X_nn], axis=1)
     ols_nn = sm.OLS(u, X_nn).fit()
 
     v = ols_nn.resid
-    ssr = (v**2).sum()
+    ssr = (v ** 2).sum()
 
-    stat = size_x*np.log(ssr0/ssr)
+    stat = size_x * np.log(ssr0 / ssr)
 
     return stat
 
@@ -139,14 +140,14 @@ def hurst_exponent(x: np.array) -> float:
     [2] Based on https://codereview.stackexchange.com/questions/224360/hurst-exponent-calculator
     """
     n = x.size  # num timesteps
-    t = np.arange(1, n+1)
+    t = np.arange(1, n + 1)
     y = x.cumsum()  # marginally more efficient than: np.cumsum(sig)
     mean_t = y / t  # running mean
 
     s_t = np.sqrt(
-        np.array([np.mean((x[:i+1] - mean_t[i])**2) for i in range(n)])
+        np.array([np.mean((x[:i + 1] - mean_t[i]) ** 2) for i in range(n)])
     )
-    r_t = np.array([np.ptp(y[:i+1] - t[:i+1] * mean_t[i]) for i in range(n)])
+    r_t = np.array([np.ptp(y[:i + 1] - t[:i + 1] * mean_t[i]) for i in range(n)])
 
     with np.errstate(invalid='ignore'):
         r_s = r_t / s_t
@@ -171,41 +172,41 @@ def ur_pp(x: np.array) -> float:
     https://www.rdocumentation.org/packages/urca/versions/1.3-0/topics/ur.pp
     """
     n = len(x)
-    lmax = 4 * (n / 100)**(1 / 4)
+    lmax = 4 * (n / 100) ** (1 / 4)
 
     lmax, _ = divmod(lmax, 1)
     lmax = int(lmax)
 
-    y, y_l1 = x[1:], x[:(n-1)]
+    y, y_l1 = x[1:], x[:n - 1]
 
-    n-=1
+    n -= 1
 
     y_l1 = sm.add_constant(y_l1)
 
     model = sm.OLS(y, y_l1).fit()
     my_tstat, res = model.tvalues[0], model.resid
-    s = 1 / (n * np.sum(res**2))
-    myybar = (1 / n**2) * (((y-y.mean())**2).sum())
-    myy = (1 / n**2) * ((y**2).sum())
-    my = (n**(-3 / 2))*(y.sum())
+    s = 1 / (n * np.sum(res ** 2))
+    myybar = (1 / n ** 2) * (((y - y.mean()) ** 2).sum())
+    myy = (1 / n ** 2) * ((y ** 2).sum())
+    my = (n ** (-3 / 2)) * (y.sum())
 
     idx = np.arange(lmax)
     coprods = []
     for i in idx:
-        first_del = res[(i+1):]
-        sec_del = res[:(n-i-1)]
-        prod = first_del*sec_del
+        first_del = res[i + 1:]
+        sec_del = res[:n - i - 1]
+        prod = first_del * sec_del
         coprods.append(prod.sum())
     coprods = np.array(coprods)
 
-    weights = 1 - (idx+1)/(lmax+1)
-    sig = s + (2/n)*((weights*coprods).sum())
-    lambda_ = 0.5*(sig-s)
-    lambda_prime = lambda_/sig
+    weights = 1 - (idx + 1) / (lmax + 1)
+    sig = s + (2 / n) * ((weights * coprods).sum())
+    lambda_ = 0.5 * (sig - s)
+    lambda_prime = lambda_ / sig
 
     alpha = model.params[1]
 
-    test_stat = n*(alpha-1)-lambda_/myybar
+    test_stat = n * (alpha - 1) - lambda_ / myybar
 
     return test_stat
 
@@ -222,15 +223,15 @@ def lambda_coef_var(lambda_par: float, x: np.array, period: int = 2):
     period: int
         The length of each subseries (usually the length of seasonal period).
 
-    Return
-    ------
+    Returns
+    -------
     float
         Coefficient of variation.
     """
     if len(np.unique(x)) == 1:
         return 1
 
-    split_size = divmod(len(x)-1, period)
+    split_size = divmod(len(x) - 1, period)
     split_size, _ = split_size
 
     split = np.array_split(x, split_size)

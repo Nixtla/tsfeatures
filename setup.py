@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="tsfeatures",
-    version="0.1.0",
+    version="0.2.0",
     description="Calculates various features from time series data.",
     long_description=long_description,
     long_description_content_type="text/markdown",

@@ -7,16 +7,16 @@ import os
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
-
-import numpy as np
-import pandas as pd
-
-from arch import arch_model
 from collections import ChainMap
 from functools import partial
 from itertools import groupby
 from math import log, e
 from multiprocessing import cpu_count, Pool
+from typing import List, Dict, Optional, Callable
+
+import numpy as np
+import pandas as pd
+from arch import arch_model
 from scipy.optimize import minimize_scalar
 from sklearn.linear_model import LinearRegression
 from statsmodels.api import add_constant, OLS
@@ -24,15 +24,12 @@ from statsmodels.tsa.ar_model import AR
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.seasonal import STL
 from statsmodels.tsa.stattools import acf, pacf, kpss
-from supersmoother import supersmoother
-from typing import List, Dict, Optional, Callable
+from supersmoother import SuperSmoother
 
-from .utils import (
-    embed, FREQS, hurst_exponent,
-    lambda_coef_var, poly,
-    scalets, spectral_entropy,
-    terasvirta_test, ur_pp
-)
+from .utils import (embed, FREQS, hurst_exponent,
+                    lambda_coef_var, poly,
+                    scalets, spectral_entropy,
+                    terasvirta_test, ur_pp)
 
 
 def acf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
@@ -694,7 +691,7 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
         deseas = x
         t = np.arange(len(x)) + 1
         try:
-            trend0 = supersmoother(t, deseas)
+            trend0 = SuperSmoother().fit(t, deseas).predict(t)
         except:
             output = {
                 'nperiods': nperiods,

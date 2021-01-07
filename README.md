@@ -148,3 +148,10 @@ python -m tsfeatures.compare_with_r --results_directory /some/path \
 * **Jose Moralez** - [jose-moralez](https://github.com/jose-moralez)
 * **Ricardo Olivares** - [rolivaresar](https://github.com/rolivaresar)
 * **Max Mergenthaler** - [mergenthaler](https://github.com/mergenthaler)
+
+# Release information
+
+## 0.2.0
+
+- Fix Supersmoother: for non seasonal time series (freq=1) trend stl_features only returned nan.
+- Set dependencies versions.

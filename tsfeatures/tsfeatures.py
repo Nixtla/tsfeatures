@@ -307,7 +307,17 @@ def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
     try:
         x_whitened = AR(x).fit(maxlag=order_ar, ic='aic', trend='c').resid
     except:
-        x_whitened = AR(x).fit(maxlag=order_ar, ic='aic', trend='nc').resid
+        try:
+            x_whitened = AR(x).fit(maxlag=order_ar, ic='aic', trend='nc').resid
+        except:
+            output = {
+                'arch_acf': np.nan,
+                'garch_acf': np.nan,
+                'arch_r2': np.nan,
+                'garch_r2': np.nan
+            }
+
+            return output
     # arch and box test
     x_archtest = arch_stat(x_whitened, m)['arch_lm']
     LBstat = (acf(x_whitened ** 2, nlags=12, fft=False)[1:] ** 2).sum()

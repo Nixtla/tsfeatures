@@ -16,6 +16,7 @@ from typing import List, Dict, Optional, Callable
 
 import numpy as np
 import pandas as pd
+from antropy import spectral_entropy
 from arch import arch_model
 from scipy.optimize import minimize_scalar
 from sklearn.linear_model import LinearRegression
@@ -28,8 +29,7 @@ from supersmoother import SuperSmoother
 
 from .utils import (embed, FREQS, hurst_exponent,
                     lambda_coef_var, poly,
-                    scalets, spectral_entropy,
-                    terasvirta_test, ur_pp)
+                    scalets, terasvirta_test, ur_pp)
 
 
 def acf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
@@ -188,10 +188,6 @@ def entropy(x: np.array, freq: int = 1, base: float = e) -> Dict[str, float]:
     -------
     dict
         'entropy': Wrapper of the function spectral_entropy.
-
-    References
-    ----------
-    [1] https://raphaelvallat.com/entropy/build/html/index.html
     """
     try:
         with np.errstate(divide='ignore'):
@@ -358,7 +354,7 @@ def holt_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
         fit = ExponentialSmoothing(x, trend='add', seasonal=None).fit()
         params = {
             'alpha': fit.params['smoothing_level'],
-            'beta': fit.params['smoothing_slope']
+            'beta': fit.params['smoothing_trend']
         }
     except:
         params = {
@@ -411,7 +407,7 @@ def hw_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
         fit = ExponentialSmoothing(x, seasonal_periods=freq, trend='add', seasonal='add').fit()
         params = {
             'hw_alpha': fit.params['smoothing_level'],
-            'hw_beta': fit.params['smoothing_slope'],
+            'hw_beta': fit.params['smoothing_trend'],
             'hw_gamma': fit.params['smoothing_seasonal']
         }
     except:

@@ -354,7 +354,7 @@ def holt_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
         fit = ExponentialSmoothing(x, trend='add', seasonal=None).fit()
         params = {
             'alpha': fit.params['smoothing_level'],
-            'beta': fit.params['smoothing_slope']
+            'beta': fit.params['smoothing_trend']
         }
     except:
         params = {
@@ -407,7 +407,7 @@ def hw_parameters(x: np.array, freq: int = 1) -> Dict[str, float]:
         fit = ExponentialSmoothing(x, seasonal_periods=freq, trend='add', seasonal='add').fit()
         params = {
             'hw_alpha': fit.params['smoothing_level'],
-            'hw_beta': fit.params['smoothing_slope'],
+            'hw_beta': fit.params['smoothing_trend'],
             'hw_gamma': fit.params['smoothing_seasonal']
         }
     except:

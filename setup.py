@@ -18,6 +18,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
+        "antropy>=0.1.4",
         "arch>=4.11",
         "pandas>=1.0.5",
         "scikit-learn>=0.23.1",

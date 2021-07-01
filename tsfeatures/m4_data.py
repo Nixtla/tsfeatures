@@ -40,12 +40,9 @@ def maybe_download(filename, directory):
     train_directory = data_directory + "/Train/"
     test_directory = data_directory + "/Test/"
 
-    if not os.path.exists(data_directory):
-        os.mkdir(data_directory)
-    if not os.path.exists(train_directory):
-        os.mkdir(train_directory)
-    if not os.path.exists(test_directory):
-        os.mkdir(test_directory)
+    os.makedirs(data_directory, exist_ok=True)
+    os.makedirs(train_directory, exist_ok=True)
+    os.makedirs(test_directory, exist_ok=True)
 
     filepath = os.path.join(data_directory, filename)
     if not os.path.exists(filepath):

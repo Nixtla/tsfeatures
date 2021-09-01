@@ -87,7 +87,7 @@ You can use this package to call `tsfeatures` from R inside python (you need to 
 ```python
 from tsfeatures.tsfeatures_r import tsfeatures_r
 
-tsfeatures(panel, freq=7, features=["acf_features"])
+tsfeatures_r(panel, freq=7, features=["acf_features"])
 ```
 
 Observe that this function receives a list of strings instead of a list of functions.

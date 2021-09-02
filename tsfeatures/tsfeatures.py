@@ -841,8 +841,22 @@ def _get_feats(index,
                 dict_freqs = FREQS):
 
     if freq is None:
-        freq = pd.infer_freq(ts['ds'])
-        freq = dict_freqs[freq]
+        inf_freq = pd.infer_freq(ts['ds'])
+        if inf_freq is None:
+            raise Exception(
+                'Failed to infer frequency from the `ds` column, '
+                'please provide the frequency using the `freq` argument.'
+            )
+
+        freq = dict_freqs.get(inf_freq)
+        if freq is None:
+            raise Exception(
+                'Error trying to convert infered frequency from the `ds` column '
+                'to integer. Please provide a dictionary with that frequency '
+                'as key and the integer frequency as value. '
+                f'Infered frequency: {inf_freq}'
+            )
+
 
     if isinstance(ts, pd.DataFrame):
         assert 'y' in ts.columns

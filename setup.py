@@ -5,11 +5,11 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="tsfeatures",
-    version="0.3.1",
+    version="0.4.0",
     description="Calculates various features from time series data.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/FedericoGarza/tsfeatures",
+    url="https://github.com/Nixtla/tsfeatures",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

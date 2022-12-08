@@ -22,7 +22,7 @@ setuptools.setup(
         "arch>=4.11",
         "pandas>=1.0.5",
         "scikit-learn>=0.23.1",
-        "statsmodels>=0.12.2",
+        "statsmodels>=0.13.2",
         "supersmoother>=0.4"
     ]
 )

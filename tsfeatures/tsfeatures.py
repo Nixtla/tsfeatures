@@ -535,7 +535,7 @@ def pacf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     else:
         pacfx = np.nan
     # Sum of first 6 PACs squared
-    if len(x) > 5:
+    if len(x) > 5 and not np.all(np.isnan(pacfx)):
         pacf_5 = np.sum(pacfx[1:6] ** 2)
     else:
         pacf_5 = np.nan

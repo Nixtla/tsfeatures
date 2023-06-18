@@ -565,7 +565,10 @@ def pacf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     }
 
     if m > 1:
-        output['seas_pacf'] = pacfx[m] if len(pacfx) > m else np.nan
+        try:
+            output['seas_pacf'] = pacfx[m] if len(pacfx) > m else np.nan
+        except:
+            output['seas_pacf'] = np.nan
 
     return output
 

@@ -116,7 +116,7 @@ def arch_stat(x: np.array, freq: int = 1,
     if len(x) <= lags + 1:
         return {'arch_lm': np.nan}
     if demean:
-        x -= np.mean(x)
+        x = x - np.mean(x)
 
     size_x = len(x)
     mat = embed(x ** 2, lags + 1)

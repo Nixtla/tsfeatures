@@ -759,7 +759,10 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     coefs = OLS(trend0, time_x).fit().params
 
     linearity = coefs[1]
-    curvature = -coefs[2]
+    try:
+        curvature = -coefs[2]
+    except:
+        curvature = np.nan
     # ACF features
     acfremainder = acf_features(remainder, m)
     # Assemble features

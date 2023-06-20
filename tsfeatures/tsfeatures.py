@@ -828,6 +828,49 @@ def unitroot_pp(x: np.array, freq: int = 1) -> Dict[str, float]:
 
     return {'unitroot_pp': test_pp}
 
+def statistics(x: np.array, freq: int = 1) -> Dict[str, float]:
+    """Computes basic statistics of x.
+
+    Parameters
+    ----------
+    x: numpy array
+        The time series.
+    freq: int
+        Frequency of the time series
+
+    Returns
+    -------
+    dict
+        'total_sum': Total sum of the series.
+        'mean': Mean value.
+        'variance': variance of the time series.
+        'median': Median value.
+        'q2point5': 2.5 Percentile.
+        'q5': 5 percentile.
+        'q25': 25 percentile.
+        'q75': 75 percentile.
+        'q95': 95 percentile.
+        'q97point5': 97.5 percentile.
+        'max': Max value.
+        'min': Min value. 
+    """
+    res = dict(
+        total_sum=np.sum(x),
+        mean=np.mean(x),
+        variance=np.var(x, ddof=1),
+        median=np.median(x),
+        q2point5=np.quantile(x, q=0.025),
+        q5=np.quantile(x, q=0.05),
+        q25=np.quantile(x, q=0.25),
+        q75=np.quantile(x, q=0.75),
+        q95=np.quantile(x, q=0.95),
+        q97point5=np.quantile(x, q=0.975),
+        max=np.max(x),
+        min=np.min(x),
+    )
+
+    return res
+
 ###############################################################################
 #### MAIN FUNCTIONS ###########################################################
 ###############################################################################

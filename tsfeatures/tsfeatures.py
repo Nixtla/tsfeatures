@@ -71,7 +71,10 @@ def acf_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     else:
         acfdiff2x = [np.nan] * 2
     # first autocorrelation coefficient
-    acf_1 = acfx[1]
+    try:
+        acf_1 = acfx[1]
+    except:
+        acf_1 = np.nan
     # sum of squares of first 10 autocorrelation coefficients
     sum_of_sq_acf10 = np.sum((acfx[1:11]) ** 2) if size_x > 10 else np.nan
     # first autocorrelation ciefficient of differenced series
@@ -758,7 +761,10 @@ def stl_features(x: np.array, freq: int = 1) -> Dict[str, float]:
     time_x = add_constant(poly_m)
     coefs = OLS(trend0, time_x).fit().params
 
-    linearity = coefs[1]
+    try:
+        linearity = coefs[1]
+    except:
+        linearity = np.nan
     try:
         curvature = -coefs[2]
     except:

@@ -845,12 +845,12 @@ def statistics(x: np.array, freq: int = 1) -> Dict[str, float]:
         'mean': Mean value.
         'variance': variance of the time series.
         'median': Median value.
-        'q2point5': 2.5 Percentile.
-        'q5': 5 percentile.
-        'q25': 25 percentile.
-        'q75': 75 percentile.
-        'q95': 95 percentile.
-        'q97point5': 97.5 percentile.
+        'p2point5': 2.5 Percentile.
+        'p5': 5 percentile.
+        'p25': 25 percentile.
+        'p75': 75 percentile.
+        'p95': 95 percentile.
+        'p97point5': 97.5 percentile.
         'max': Max value.
         'min': Min value. 
     """
@@ -859,12 +859,12 @@ def statistics(x: np.array, freq: int = 1) -> Dict[str, float]:
         mean=np.mean(x),
         variance=np.var(x, ddof=1),
         median=np.median(x),
-        q2point5=np.quantile(x, q=0.025),
-        q5=np.quantile(x, q=0.05),
-        q25=np.quantile(x, q=0.25),
-        q75=np.quantile(x, q=0.75),
-        q95=np.quantile(x, q=0.95),
-        q97point5=np.quantile(x, q=0.975),
+        p2point5=np.quantile(x, q=0.025),
+        p5=np.quantile(x, q=0.05),
+        p25=np.quantile(x, q=0.25),
+        p75=np.quantile(x, q=0.75),
+        p95=np.quantile(x, q=0.95),
+        p97point5=np.quantile(x, q=0.975),
         max=np.max(x),
         min=np.min(x),
     )

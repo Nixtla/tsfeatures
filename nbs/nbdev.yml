@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "tsfeatures"
+  site-url: "https://jope35.github.io/tsfeatures"
+  description: "porting tsfeature to nbdev"
+  repo-branch: main
+  repo-url: "https://github.com/jope35/tsfeatures"

@@ -3,7 +3,7 @@ project:
 
 website:
   title: "tsfeatures"
-  site-url: "https://jope35.github.io/tsfeatures/"
+  site-url: "https://Nixtla.github.io/tsfeatures/"
   description: "Calculates various features from time series data. Python implementation of the R package tsfeatures."
   repo-branch: main
-  repo-url: "https://github.com/jope35/tsfeatures"
+  repo-url: "https://github.com/Nixtla/tsfeatures"

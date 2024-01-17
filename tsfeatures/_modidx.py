@@ -2,8 +2,8 @@
 
 d = { 'settings': { 'branch': 'main',
                 'doc_baseurl': '/tsfeatures/',
-                'doc_host': 'https://jope35.github.io',
-                'git_url': 'https://github.com/jope35/tsfeatures',
+                'doc_host': 'https://Nixtla.github.io',
+                'git_url': 'https://github.com/Nixtla/tsfeatures',
                 'lib_path': 'tsfeatures'},
   'syms': { 'tsfeatures.features': { 'tsfeatures.features.acf_features': ('features.html#acf_features', 'tsfeatures/features.py'),
                                      'tsfeatures.features.arch_stat': ('features.html#arch_stat', 'tsfeatures/features.py'),

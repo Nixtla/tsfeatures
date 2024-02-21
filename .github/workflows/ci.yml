@@ -32,6 +32,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
+      - name: Install nbdev
+        run: pip install nbdev
+
       - name: Install the library
         run: pip install ".[dev]"
 

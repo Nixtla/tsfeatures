@@ -12,7 +12,7 @@ import warnings
 from collections import ChainMap
 from functools import partial
 from multiprocessing import Pool
-from typing import Callable, Dict, List, Optional
+from typing import Callable, List, Optional
 
 import pandas as pd
 

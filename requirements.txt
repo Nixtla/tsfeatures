@@ -1,6 +1,0 @@
-antropy>=0.1.4
-arch>=4.14
-pandas>=1.0.5
-scikit-learn>=0.23.1
-statsmodels>=0.12.2
-supersmoother>=0.4

@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "tsfeatures"
+  site-url: "https://Nixtla.github.io/tsfeatures/"
+  description: "Calculates various features from time series data. Python implementation of the R package tsfeatures."
+  repo-branch: main
+  repo-url: "https://github.com/Nixtla/tsfeatures"

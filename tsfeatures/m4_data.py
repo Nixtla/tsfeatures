@@ -9,6 +9,7 @@ import urllib
 
 import pandas as pd
 
+# %% ../nbs/m4_data.ipynb 4
 seas_dict = {
     "Hourly": {"seasonality": 24, "input_size": 24, "output_size": 48, "freq": "H"},
     "Daily": {"seasonality": 7, "input_size": 7, "output_size": 14, "freq": "D"},
@@ -18,12 +19,12 @@ seas_dict = {
     "Yearly": {"seasonality": 1, "input_size": 4, "output_size": 6, "freq": "D"},
 }
 
-# %% ../nbs/m4_data.ipynb 4
+# %% ../nbs/m4_data.ipynb 5
 SOURCE_URL = (
     "https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/"
 )
 
-# %% ../nbs/m4_data.ipynb 5
+# %% ../nbs/m4_data.ipynb 6
 def maybe_download(filename, directory):
     """Download the data from M4's website, unless it's already here.
 
@@ -51,7 +52,7 @@ def maybe_download(filename, directory):
 
     return filepath
 
-# %% ../nbs/m4_data.ipynb 6
+# %% ../nbs/m4_data.ipynb 7
 def m4_parser(dataset_name, directory, num_obs=1000000):
     """Transform M4 data into a panel.
 
@@ -135,7 +136,7 @@ def m4_parser(dataset_name, directory, num_obs=1000000):
 
     return X_train_df, y_train_df, X_test_df, y_test_df
 
-# %% ../nbs/m4_data.ipynb 7
+# %% ../nbs/m4_data.ipynb 8
 def prepare_m4_data(dataset_name, directory, num_obs):
     """Pipeline that obtains M4 times series, tranforms it and
     gets naive2 predictions.

@@ -17,11 +17,12 @@ concurrency:
 
 jobs:
   run-tests:
-    runs-on: [macos-latest, windows-latest, ubuntu-latest]
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Clone repo
         uses: actions/checkout@v3

@@ -31,7 +31,7 @@ jobs:
           update-rtools: true # Update rtools40 compilers and libraries to the latest builds.
 
       - name: Check R Installation
-        run: R --version
+        run: "R --version"
         shell: pwsh
 
       - name: Set up environment

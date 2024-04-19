@@ -26,7 +26,7 @@ jobs:
       - name: setup R
         uses: r-lib/actions/setup-r@v2
         with:
-          # r-version: "4.3.3"
+          r-version: "4.3.3"
           install-r: false # If “false” use the existing installation in the GitHub Action image
           update-rtools: true # Update rtools40 compilers and libraries to the latest builds.
 

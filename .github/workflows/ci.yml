@@ -30,10 +30,6 @@ jobs:
           install-r: false # If “false” use the existing installation in the GitHub Action image
           update-rtools: true # Update rtools40 compilers and libraries to the latest builds.
 
-      - name: Check R Installation
-        run: "R --version"
-        shell: pwsh
-
       - name: Set up environment
         uses: actions/setup-python@v4
         with:

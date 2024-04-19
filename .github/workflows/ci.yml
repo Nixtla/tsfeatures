@@ -23,6 +23,11 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v3
 
+      - name: setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "4.3.3"
+
       - name: Set up environment
         uses: actions/setup-python@v4
         with:

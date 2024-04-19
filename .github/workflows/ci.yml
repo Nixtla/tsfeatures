@@ -23,13 +23,6 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v3
 
-      - name: setup R
-        uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: "4.3.3"
-          install-r: false # If “false” use the existing installation in the GitHub Action image
-          update-rtools: true # Update rtools40 compilers and libraries to the latest builds.
-
       - name: Set up environment
         uses: actions/setup-python@v4
         with:

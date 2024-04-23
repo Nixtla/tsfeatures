@@ -35,9 +35,6 @@ jobs:
           windows-path-include-rtools: true # Whether to add Rtools to the PATH.
           install-r: true # If “false” use the existing installation in the GitHub Action image
           update-rtools: true # Update rtools40 compilers and libraries to the latest builds.
-      - name: Print R_HOME
-        run: |
-          echo $R_HOME
 
       - name: Install the library
         run: pip install ".[dev]"

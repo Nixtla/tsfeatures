@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.10"] #["3.8", "3.9", "3.10", "3.11"]
         os: [windows-latest] #[macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -35,7 +35,9 @@ jobs:
           windows-path-include-rtools: true # Whether to add Rtools to the PATH.
           install-r: true # If “false” use the existing installation in the GitHub Action image
           update-rtools: true # Update rtools40 compilers and libraries to the latest builds.
-      - run: Rscript -e 'print("hello")'
+      - name: Print R_HOME
+        run: |
+          echo $R_HOME
 
       - name: Install the library
         run: pip install ".[dev]"

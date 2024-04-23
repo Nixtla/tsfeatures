@@ -40,4 +40,4 @@ jobs:
         run: pip install ".[dev]"
 
       - name: Run tests
-        run: nbdev_test --do_print --timing
+        run: nbdev_test --do_print --timing --n_workers 1

@@ -445,6 +445,19 @@ def intervals(x: np.array, freq: int = 1) -> Dict[str, float]:
 
     return {'intervals_mean': np.mean(y), 'intervals_sd': np.std(y, ddof=1)}
 
+def _tiled_windows(x: np.array, width: int) -> np.array:
+    """Splits x into non-overlapping tiles of length `width`, dropping any
+    trailing partial tile, matching the semantics of the original
+    `lo = np.arange(0, nr, width); up = lo + width; nsegs = nr / width` /
+    `idx in np.arange(int(nsegs))` construction used by `lumpiness` and
+    `stability`: only `int(len(x) / width)` full-width tiles are kept.
+    Returns a 2D array of shape (n_full_tiles, width), reshaped rather than
+    sliced tile-by-tile so downstream reductions can run as a single
+    vectorized call instead of one Python-level numpy call per tile.
+    """
+    n_full = int(len(x) / width)
+    return x[:n_full * width].reshape(n_full, width)
+
 def lumpiness(x: np.array, freq: int = 1) -> Dict[str, float]:
     """lumpiness.
 
@@ -465,11 +478,8 @@ def lumpiness(x: np.array, freq: int = 1) -> Dict[str, float]:
     else:
         width = freq
 
-    nr = len(x)
-    lo = np.arange(0, nr, width)
-    up = lo + width
-    nsegs = nr / width
-    varx = [np.nanvar(x[lo[idx]:up[idx]], ddof=1) for idx in np.arange(int(nsegs))]
+    with np.errstate(invalid='ignore'):
+        varx = np.nanvar(_tiled_windows(x, width), axis=1, ddof=1)
 
     if len(x) < 2 * width:
         lumpiness = 0
@@ -631,11 +641,8 @@ def stability(x: np.array, freq: int = 1) -> Dict[str, float]:
     else:
         width = freq
 
-    nr = len(x)
-    lo = np.arange(0, nr, width)
-    up = lo + width
-    nsegs = nr / width
-    meanx = [np.nanmean(x[lo[idx]:up[idx]]) for idx in np.arange(int(nsegs))]
+    with np.errstate(invalid='ignore'):
+        meanx = np.nanmean(_tiled_windows(x, width), axis=1)
 
     if len(x) < 2 * width:
         stability = 0

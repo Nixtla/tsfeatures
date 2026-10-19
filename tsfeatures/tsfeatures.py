@@ -21,7 +21,7 @@ from arch import arch_model
 from scipy.optimize import minimize_scalar
 from sklearn.linear_model import LinearRegression
 from statsmodels.api import add_constant, OLS
-from statsmodels.tsa.ar_model import AR
+from statsmodels.tsa.ar_model import ar_select_order
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.seasonal import STL
 from statsmodels.tsa.stattools import acf, pacf, kpss
@@ -304,10 +304,10 @@ def heterogeneity(x: np.array, freq: int = 1) -> Dict[str, float]:
     order_ar = int(order_ar)
 
     try:
-        x_whitened = AR(x).fit(maxlag=order_ar, ic='aic', trend='c').resid
+        x_whitened = ar_select_order(x, maxlag=order_ar, ic='aic', trend='c').model.fit().resid
     except:
         try:
-            x_whitened = AR(x).fit(maxlag=order_ar, ic='aic', trend='nc').resid
+            x_whitened = ar_select_order(x, maxlag=order_ar, ic='aic', trend='n').model.fit().resid
         except:
             output = {
                 'arch_acf': np.nan,

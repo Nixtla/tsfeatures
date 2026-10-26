@@ -1,7 +1,7 @@
 [![Build](https://github.com/FedericoGarza/tsfeatures/workflows/Python%20package/badge.svg)](https://github.com/FedericoGarza/tsfeatures/tree/master)
 [![PyPI version fury.io](https://badge.fury.io/py/tsfeatures.svg)](https://pypi.python.org/pypi/tsfeatures/)
 [![Downloads](https://pepy.tech/badge/tsfeatures)](https://pepy.tech/project/tsfeatures)
-[![Python 3.6+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/release/python-370+/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/FedericoGarza/tsfeatures/blob/master/LICENSE)
 
 # tsfeatures
@@ -9,6 +9,8 @@
 Calculates various features from time series data. Python implementation of the R package _[tsfeatures](https://github.com/robjhyndman/tsfeatures)_.
 
 # Installation
+
+Python 3.11 or newer is required. Support for Python 3.10 and earlier has been dropped.
 
 You can install the *released* version of `tsfeatures` from the [Python package index](pypi.org) with:
 

@@ -11,7 +11,7 @@ import pandas as pd
 #from six.moves import urllib
 
 seas_dict = {'Hourly': {'seasonality': 24, 'input_size': 24,
-                       'output_size': 48, 'freq': 'H'},
+                       'output_size': 48, 'freq': 'h'},
              'Daily': {'seasonality': 7, 'input_size': 7,
                        'output_size': 14, 'freq': 'D'},
              'Weekly': {'seasonality': 52, 'input_size': 52,
@@ -108,13 +108,12 @@ def m4_parser(dataset_name, directory, num_obs=1000000):
     # Create column with dates with freq of dataset
     len_series = df.groupby('unique_id').agg({'ds': 'max'}).reset_index()
     dates = []
-    for i in range(len(len_series)):
-      len_serie = len_series.iloc[i,1]
-      ranges = pd.date_range(start='1970/01/01', periods=len_serie, freq=freq)
-      dates += list(ranges)
-    df.loc[:,'ds'] = dates
+    for series_index in range(len(len_series)):
+        len_serie = len_series.iloc[series_index,1]
+        ranges = pd.date_range(start='1970/01/01', periods=len_serie, freq=freq)
+        dates += list(ranges)
 
-    df = df.merge(m4_info, left_on=['unique_id'], right_on=['M4id'])
+    df = df.assign(ds=dates).merge(m4_info, left_on=['unique_id'], right_on=['M4id'])
     df.drop(columns=['M4id'], inplace=True)
     df = df.rename(columns={'category': 'x'})
 
